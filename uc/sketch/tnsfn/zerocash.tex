@@ -1,0 +1,37 @@
+\begin{transitionfnsketch}{$\tnsfnkachina_{\mathsf{zc}}$}
+  The state transition function for a Zerocash token contract.
+
+  \vsep
+
+  \begin{receiveinputsketch}{init}{}
+    Instruct the private state oracle to sample new Zerocash secret keys, and
+    record them in the private state. Return the corresponding public keys.
+  \end{receiveinputsketch}
+
+  \begin{receiveinputsketch}{send}{(\pk_z, \pk_e)}
+    Process new messages through the private state oracle. Privately select an
+    available coin to spend, retrieving its secrets. Assert that the coin's
+    Merkle path is valid, and that the secrets are internally consistent.
+    Compute the corresponding serial number, and publicly assert its uniqueness,
+    marking it as spent. Publicly assert that the proven Merkle tree root is
+    valid. Privately compute a new coin commitment and encryption, and publish
+    these in the public state, updating the list of past Merkle roots.
+  \end{receiveinputsketch}
+
+  \begin{receiveinputsketch}{mint}{}
+    Assert the existence of secret keys. Sample a new coin commitment by the
+    recorded private key, and privately record the commitment and associated
+    secrets as a held coin. Add the commitment to the public set of commitments,
+    and update the public list of past Merkle roots.
+  \end{receiveinputsketch}
+
+  \begin{receiveinputsketch}{balance}{}
+    Process new messages through the private state oracle. Return the size of
+    the set of coins held in both the confirmed and projected private states.
+  \end{receiveinputsketch}
+\end{transitionfnsketch}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../../../main"
+%%% End:

@@ -1,0 +1,119 @@
+\section{Proof Sketch of the Zerocash Contract}
+\label{app:ppproof}
+
+\begin{proof}[sketch, of \autoref{thm:zerocash}]
+  To begin with, observe that from the collision resistance of PRFs,
+  commitments, and sampling from $\set{0,1}^\secparam$, all coin commitments,
+  serial numbers, and public keys will be unique with overwhelming probability.
+
+  The environment can perform the following primary actions: a) For any honest
+  party, run $\msg{post-query}{w}$. b) For any honest party, run
+  $\msg{check-query}{\tx}$. c) For any party, run $\msg{submit}{\tx}$ against
+  $\gl$. d) For any party, run $\msg{read}{}$ against $\gl$. e) Run
+  $\msg{advance}{p, \ledgerstate'}$ against $\gl$, and f) for any party, run
+  $\msg{extend}{\ledgerstate'}$ against $\gl$.
+  
+  All but the first two of these are trivial. The simulator forwards all queries
+  to $\gl$, and the state of $\gl$ depends on no other functionality
+  (transactions ``submitted'' in the ideal functionality are only passed to the
+  adversary). As a direct result, the state and return value of $\gl$ follow the
+  same distribution in both worlds, giving the environment no means to
+  distinguish.
+
+  During the running of $\msg{check-query}{}$ the environment does have a
+  significant additional means of input, in the form of being able to assign
+  meaning to adversarial transactions \emph{as they get executed for the first
+  time}. It is sufficient to show the following: a) From the ideal-world
+  leakage, the simulator can create indistinguishable real-world leakage. b)
+  Ideal-world transactions have the same leakage descriptions sent to the
+  environment (and are rejected under the same conditions). c) An invariant
+  holds between the ideal and real-world contract state, such that it is
+  preserved across both honest and adversarial transactions' transition function
+  executions.
+
+  We omit the full detail of this invariant. To sketch the idea behind it, we
+  must prove that the following are preserved: The public keys recorded in the
+  ideal contract state, and the simulator must correspond directly to secret
+  keys recorded in the real contract state, and the same public keys returned by
+  the real contract. Further, the coins held by honest parties in the real
+  contract should be valid at any time, and correspond directly to the balance
+  of the same party in the ideal contract. Honest unconfirmed transactions in
+  both the real and ideal contracts should still be valid when they are finally
+  executed (also implying they do not conflict with each other).
+
+  These are preserved across honest $\msg{init}{}$ calls, as the simulator
+  ensures the keys it stores, and the public keys returned in the ideal
+  contract, are generated in the same way as in the real contract. They are
+  preserved across honest $\msg{send}{}$ calls, as they remove one commitment
+  from an honest party's coins, and potentially add it to the respective
+  recipient party. Further, the leakage functions of honest $\msg{send}{}$s in
+  the real contract ensures the same coin cannot be spent again. They are
+  preserved across honest $\msg{mint}{}$s, as again the balance is incremented
+  alongside a new coin being recorded. For adversarial transactions, as the
+  simulator has all honest private keys, it can, and does, check if an honest
+  party would register receiving a new coin. If a coin is sent, but no honest
+  party receives it, the simulator records it as adversarial -- even if it may
+  not be spendable by the real-world adversary. Further, the simulator manages
+  which real-world coin commitments are associated with which adversarial public
+  key in the ideal world. This ensures it can always spend a corresponding ideal
+  coin to whatever was spent in the real world (assuming the real world
+  adversary doesn't spend a coin he doesn't own, violating the one-wayness of
+  the PRF).
+
+  Transactions remaining valid in the ideal world is guaranteed by ensuring the
+  balance of a party cannot fall below zero -- by assuming the worst case of
+  only balance removing transactions becoming confirmed. Likewise, in the real
+  world, the coins eligible for spending are those received in confirmed
+  transactions, but not spent in unconfirmed ones, ensuring they will not
+  conflict. In both cases, key generation will be refused if one is currently
+  unconfirmed. $\msg{mint}{}$ and $\msg{balance}{}$ queries both only require
+  initialization to have taken place in either world.
+
+  To observe that the simulator creates indistinguishable leakage, we first note
+  that the leakage for real-world $\msg{init}{}$ transactions is an empty
+  transcript, which the simulator indeed recreates. For $\msg{send}{}$
+  transactions, the simulator creates a public state transcript following the
+  same structure of one in the real contract execution -- spending a coin,
+  creating a new one, and sending a message. Here there are two cases: either
+  the recipient is adversarial, or they are honest. In the case of an honest
+  recipient, the simulator does not know the exact public key of the recipient.
+  Fortunately, however, the environment does not know their secret keys for the
+  same reason. As a result, it is sufficient to commit to an arbitrary coin, and
+  encrypt arbitrary secrets. Due to the hiding of the commitments, and the
+  key-privacy of the encryption scheme, the environment cannot distinguish this
+  from a real transaction. The simulator creates a random serial number --
+  revealing nothing due to collision resistance, and from the leakage of the
+  length of the ledger, can reconstruct the corresponding Merkle tree root,
+  revealing the same root as the corresponding real-world transaction.
+
+  If the adversary \emph{is} the recipient, the simulator is given the actual
+  public keys -- and can use these directly as in the real protocol, creating a
+  valid spendable commitment, and a message the adversary can decrypt. Minting
+  is similar to the case of sending to an honest party -- except no message is
+  encrypted. For the same reason, the leakage is indistinguishable. Finally,
+  honest balance queries have no leakage in the real world.
+
+  For honest parties, the leakage descriptor the environment is asked to sign
+  off on is identical -- for $\msg{init}{}$, $\msg{mint}{}$, and
+  $\msg{balance}{}$ consisting of just this string, and for $\msg{send}{}$, it
+  is $\msg{send}{t, \pk}$, where $\pk$ is the recipient, if it is adversarial,
+  and otherwise is omitted. In each case, assertions made about the current and
+  projected states are satisfied in either both worlds, or neither, ensuring the
+  transaction is rejected or posted equally in both worlds. Specifically, all
+  have tests for whether keys are initialized (asserting negatively in
+  $\msg{init}{}$, and positively everywhere else). During spending, a positive
+  spendable balance is also asserted in both worlds. These holding
+  simultaneously is guaranteed by the invariant holding.
+
+  Finally, the transaction outputs the environment receives are the same in both
+  worlds: For $\msg{init}{}$, the simulator ensures it sees equally distributed
+  public keys. For $\msg{balance}{}$, the equal distribution is guaranteed by
+  the invariant. For all other messages, it will only see if they are in the
+  ledger state -- as the honest transactions cannot fail, and return nothing.
+  \qed
+\end{proof}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:

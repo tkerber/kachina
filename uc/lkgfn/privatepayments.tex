@@ -1,0 +1,50 @@
+\begin{leakagefn}{$\lkgfn_{\mathsf{pp}}$}
+  Each operation on $\tnsfn_{\mathsf{pp}}$ has minimal leakage, revealing only
+  which operation was performed, and in the case of a transfer, the time and
+  the recipient -- if and only if the recipient is corrupted.
+
+  \vsep
+
+  \begin{receiveinput*}{$(\partyview = (\ell, U, T, \jointstate), \party, w)$}
+    \State \Let $\jointstate^\pi \gets \jointstate$
+    \State \Let $B^- \gets 0$
+    \For{$u \loopin U$}
+      \State \Let $(\cdot, w', z, a, \cdot, \cdot) \gets T(u)$
+      \If{$w' = \msg{send}{\cdot}$}
+        \Let $B^- \gets B^- + 1$
+      \EndIf
+      \State \Let $(\jointstate^\pi, \cdot) \gets \tnsfn_{\mathsf{pp}}(\jointstate^\pi,
+        \party, w', z, a)$
+    \EndFor
+    \If{$w = \msg{init}{}$}
+      \If{$\jointstate.K(\party) = \jointstate^\pi.K(\party) = \bot$}
+        \State \Return $(\msg{init}{}, \msg{init}{}, \epsilon, \varnothing)$
+      \Else
+        ~\Return $(\bot, \bot, \bot, \bot)$
+      \EndIf
+    \ElsIf{$\exists \pk : w = \msg{send}{\pk}$}
+      \State \Let $c \samples \set{0,1}^\secparam$
+      \If{$\jointstate.B(\jointstate.K(\party)) - B^- > 0 \land \jointstate.K(\party) = \jointstate^\pi(\party) \neq
+          \bot$}
+        \State \Let $\vn{lkg} \gets t$
+        \If{$\nexists \party' \in \honest : \pk = \jointstate.K(\party')$}
+          \Let $\vn{lkg} \gets (\ell, \pk)$
+        \EndIf
+        \State \Return $(\msg{send}{\ell, \pk}, \vn{lkg}, \epsilon, \varnothing)$
+      \Else
+        ~\Return $(\bot, \bot, \bot, \bot)$
+      \EndIf
+    \ElsIf{$w = \msg{mint}{} \land \jointstate.K(\party) \neq \bot$}
+      \State \Return $(\msg{mint}{}, \msg{mint}{}, \epsilon, \jointstate.K(\party))$
+    \ElsIf{$w = \msg{balance}{} \land \jointstate.K(\party) \neq \bot$}
+      \State \Return $(\msg{balance}{}, \msg{balance}{}, \epsilon,
+        \jointstate.B(\jointstate.K(\party)) - B^-)$
+    \Else
+      \State \Return $(\bot, \bot, \bot, \bot)$
+    \EndIf
+  \end{receiveinput*}
+\end{leakagefn}
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../../main"
+%%% End:

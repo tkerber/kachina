@@ -1,0 +1,294 @@
+\subsection{Supporting Lemmas}
+
+Both $\fsc$ and $\kachina$ have $\vn{exec}$ functions, which executes an entire
+ledger state given to it. \autoref{lem:execpreserve} is a generalization of
+invariant \ref{inv:execcons}, and simply states that this execution will
+preserve the invariant, and return the same values in the real and ideal world.
+
+\begin{lemma}
+  For any $\party \in \honest, \ledgerstate$ where $\ledgerstate \prec
+  \gl^r.\ledgerstate \lor \gl^r.\ledgerstate \prec \ledgerstate$, and after
+  sending the message $\msg{extend}{\ledgerstate \setminus \gl^r.\ledgerstate}$ to $\gl$,
+  $((\sigma^i, \boldsymbol\rho^i), y^i, C^i)$ is the result of running
+  $\vn{exec}(\ledgerstate)$ in $\fsc$, and $((\sigma^r, \rho^r),
+  y^r, C^r)$ is the result of running $\vn{exec}(\ledgerstate)$ in
+  $\phi_\party$, these interactions preserve $\boldsymbol I$, and the returned
+  values are equivalent: $\sigma^i = \sigma^r \land \boldsymbol\rho^i[\party] =
+  \rho^r$. If the last transaction $\tx$ in $\ledgerstate$ is owned by $\party$
+  (i.e. $\fsc.T(\tx) = (\party, \ldots)$), then $y^i = y^r$,
+  otherwise $y^r = \bot$.
+  \label{lem:execpreserve}
+\end{lemma}
+
+\begin{proof}
+  First, we consider the $\msg{extend}{}$ call. This will only extend if
+  $\ledgerstate$ is longer than $\gl.\ledgerstate$ -- otherwise it extends with
+  $\epsilon$, which is a no-op. This call preserves $\boldsymbol I$, as
+  demonstrated in \autoref{sec:proof}.
+
+  We prove by induction over $\ledgerstate$. In the base case, $\ledgerstate =
+  \epsilon$. The invariant is trivially preserved, and the returned values are
+  equivalent (when $\varnothing$ is interpreted as public/private state pairs).
+  In the induction step, we proceed by case analysis for the new transaction
+  $\tx = (\transcript, D, \nizkproof)$:
+
+  \paragraph{Case 1} The $\tx \in \fsc.T$, and all processed transactions so
+  far have been also been recorded (are in $\fsc.T$). If so, then by
+  \ref{inv:execcons}, the return values are equivalent. Further, this iteration
+  does not change the state in the ideal world. By \ref{inv:honestwit} and
+  \ref{inv:rejected}, we also know that the transaction is either in
+  $\fnizkr.\proofs$, or $\fnizkr.\disproofs$. As a result, no state changes will
+  be made in the real-world execution either, trivially preserving $\boldsymbol
+  I$.
+
+  \paragraph{Case 2} $\tx \notin \fsc.T$, but $((\transcript,
+  D), \nizkproof) \in \fnizkr.\disproofs$. In this case, the real
+  world will skip this transaction, and set $y$ to $\bot$. In the ideal world,
+  the simulator will ensure that $\fsc.T(\tx)$ is set to
+  $\textsc{none}$, and equally this transaction is skipped, with $y$ set to
+  $\bot$. This affects and preserves the following invariants:
+
+  \begin{enumerate}
+    \item[\ref{inv:wit}] As by \ref{inv:iswit}, $\tx$ has no witness.
+    \item[\ref{inv:honestwit}] As $\fsc.T(\tx) =
+      \textsc{none}$, not satisfying the precondition.
+    \item[\ref{inv:honestrec}] As $\tx$ was not in $\fsc.T$ in
+      the induction hypothesis, and is not associated with an honest party.
+    \item[\ref{inv:anyrec}] By $\fsc.T(\tx)$ being
+      $\textsc{none}$, satisfying the postcondition.
+    \item[\ref{inv:rejected}] Due to $((\transcript, D), \nizkproof) \in
+      \fnizkr.\disproofs$.
+    \item[\ref{inv:unseenunconfirmed}] As $\fsc.T(\tx) =
+      \textsc{none}$, not satisfying the precondition.
+    \item[\ref{inv:results}] As $\tx$ was not in $\fsc.T$ in the induction
+      hypothesis, it cannot be in any $\phi_\party.Y$, by \ref{inv:honestrec}.
+    \item[\ref{inv:execcons}] By the output equivalence part of the induction
+      step holding.
+    \item[\ref{inv:postunrecorded}] By $\tx$ being previously unrecorded,
+      further restricting the quantification domain, and $\fsc.T(\tx) =
+      \textsc{none}$, not satisfying the precondition.
+    \item[\ref{inv:recordedunconf}] By the newly recorded transaction being in
+      the ledger state, as this has been extended if necessary.
+  \end{enumerate}
+
+  \paragraph{Case 3} $\tx \notin \fsc.T$, but $((\transcript, D), \nizkproof)
+  \in \fnizkr.\proofs$. In this case, by \ref{inv:iswit} a witness must be
+  recorded, and by \ref{inv:wit} this witness must be accessible to the
+  simulator. As a result, the simulator will ensure that $T(\tx)$ is set to
+  $(\adversary, w, (\transcript_\sigma, \oracle(\transcript_\rho)), \varnothing,\allowbreak
+  D)$. As this is an adversarial transactions, the $\rho$-value of the adversary
+  is not constrained, and neither is the output $y$-value. As a result, to show
+  the execution equivalence holds, it suffices to show that both worlds will
+  have the same $\sigma$-value after this new transaction is the same in both
+  worlds.
+  In the real world, the commit-separated form of $\transcript_\sigma$ is
+    applied to $\sigma$ in parts, with the last non-$\bot$ state being adopted.
+    In the ideal world, the $\transcript_\sigma$ is recomputed, and the parts
+    compared with those passed as inputs. The confirmation depth is derived from
+    how many parts match before the computed and input transcripts diverge, or
+    the result is $\bot$. The ideal world runs $\runtnsfn(\sigma, \transcript_\sigma', w,
+    \oracle(\transcript_\rho), \bot)$. Since $((\transcript_\sigma, D), (\transcript_\rho, w)) \in \lang$
+  (by \ref{inv:iswit}), we know that the public state oracle in $\runtnsfn$ can
+  be replaced with $\oracle(\transcript_\sigma)$, up to the confirmation depth,
+  after which the executions may diverge. As a result, the $\sigma$ returned in
+  the ideal world -- $\partstate{\sigma}$ indexed at the confirmation depth --
+  matches that returned in the real world.\ 
+  As $\fsc.T$ is set, the following parts of the invariant are
+  affected and preserved:
+
+  \begin{enumerate}
+    \item[\ref{inv:wit}] By the left hand side of the disjunction already being
+      satisfied.
+    \item[\ref{inv:honestwit}] By the transaction being recorded in the NIZK,
+      and the simulator knowing its witness.
+    \item[\ref{inv:honestrec}] As $\tx$ was not in $\fsc.T$ in
+      the induction hypothesis, and is not associated with an honest party.
+    \item[\ref{inv:anyrec}] By the newly recorded transaction satisfying the
+      postcondition.
+    \item[\ref{inv:rejected}] By the newly recorded transaction not being
+      recorded as rejected.
+    \item[\ref{inv:unseenunconfirmed}] By the newly recorded transaction not
+      being honestly owned, not satisfying the precondition.
+    \item[\ref{inv:results}] As $\tx$ was not in $\fsc.T$ in the induction
+      hypothesis, it cannot be in any $\phi_\party.Y$, by \ref{inv:honestrec}.
+    \item[\ref{inv:execcons}] By the output equivalence part of the induction
+      step holding.
+    \item[\ref{inv:postunrecorded}] By $\tx$ being previously unrecorded,
+      further restricting the quantification domain, and $\fsc.T(\tx) =
+      (\adversary, \ldots)$, not satisfying the precondition.
+    \item[\ref{inv:recordedunconf}] By the newly recorded transaction being in
+      the ledger state, as this has been extended if necessary.
+  \end{enumerate}
+
+  \paragraph{Case 4} The transaction has not been previously seen -- that is
+  $\tx \notin \fsc.T$, and $((\transcript, D), \nizkproof) \notin
+  \fnizkr.\proofs \cup \fnizkr.\disproofs$. In this case, both the
+  real and ideal worlds will attempt the same NIZK verification (simulated in
+  the ideal world). By \ref{inv:proofs}, they will both query the adversary
+  for a NIZK witness in the same way, handing off execution. By the induction
+  hypothesis, $\boldsymbol I$ holds as the point of execution transfer, and as
+  the query made is the same in both worlds, the environment gains no means to
+  distinguish.
+
+  As NIZK verification is the first thing done in both worlds, and NIZK
+  verification is agnostic as to which party is verifying, this is equivalent to
+  the environment \emph{first} manually verifying the same statement/proof pair.
+  As will be shown in \autoref{sec:proof}, this preserves the invariant, and
+  returns the same result in both worlds. Therefore, Case~4 is equivalent to
+  either Case~2 (if the NIZK verification failed), or Case~3 (if the NIZK
+  verification succeeded), as if the NIZK verification is done externally
+  beforehand, the statement/proof pair \emph{must} be either in
+  $\fnizkr.\proofs$, or in $\fnizkr.\disproofs$.
+
+  \paragraph{Case 5} $\tx \in \fsc.T$, however
+  \ref{inv:execcons} cannot be applied, as other transactions have since been
+  added. By \ref{inv:postunrecorded}, we know that $\tx$ belongs to an honest
+  party $\party'$, and that $\tx \in \phi_{\party'}.U$. We will use \ref{inv:dep}
+  to argue that, where $(\transcript_\rho, z) = \phi_{\party'}.T(\tx)$,
+  either $\transcript_\rho(\boldsymbol\rho^i[\party'], z) \neq \bot$, or the
+  transaction is skipped in both worlds.
+
+  First, we consider the possibility that $\tx \notin \phi_{\party'}.U$. By
+  \ref{inv:unseenunconfirmed} we know that $\tx$ cannot ever be confirmed by a
+  suffix of the ledger state referred to in the invariant. As this is a prefix
+  of $\gl^r.\ledgerstate$, such that it contains no unrecorded transactions, the
+  current induction is necessarily a suffix of it. As a result, we know that the
+  ideal world execution will fail. As transactions are rejected in both worlds
+  under the same conditions -- due to dependencies not being satisfied
+  -- we can conclude that these transactions
+  are also skipped in the real world, preserving $\boldsymbol I$ as no state
+  variables are changed, and satisfying all conditions by the induction
+  hypothesis. We will now focus on the case that $\tx \in \phi_{\party'}.U$
+
+  Next, we determine that, given $\tx \in \phi_{\party'}.U$, the longest prefix
+  $\ledgerstate^*$ referred to in \ref{inv:dep} is a prefix of the ledger state
+  $\ledgerstate$ we are currently performing induction over. We know it to be a
+  prefix of $\gl.M(\party')$, such that this prefix contains none of the
+  transactions in $\phi_{\party'}.U$. As $\tx \in \phi_{\party'}.U$, and is
+  either a prefix or extension of $\gl^r.\ledgerstate$, of which
+  $\gl^r.M(\party')$ is itself a prefix by \ref{inv:ledgerord}, we can conclude
+  that $\ledgerstate^* \prec \ledgerstate$.
+
+  To apply \ref{inv:dep}, we are only concerned with the parties private
+  state $\rho$, we can observe all transactions in $\ledgerstate \setminus
+  \ledgerstate^*$ are either not owned by $\party'$, will not be accepted in any
+  context, or are in $\phi_{\party'}.U$. We can ignore the first possibility, as
+  the real world execution of them will not affect $\rho$, regardless. The
+  second can also be ignored, as these will be skipped by the ideal world
+  execution, and by induction hypothesis, by the real world execution as well.
+  Next, we consider which of the transaction in $\ledgerstate \setminus
+  \ledgerstate^*$ owned by $\party'$ have been successfully processed.
+  $\vn{exec}$ provides replay protection, ensuring that each unconfirmed
+  transaction has been processed at most once. By induction hypothesis, the
+  sequence $A$ of such transactions that have results associated for this
+  party is the same in both worlds.
+  As $\vn{exec}$ will not set the state to $\bot$, we know that there
+    exists a confirmation depth vector $\confirmations$, such that
+  $\transcript^*_{ES(\vn{map}(\phi_{\party'}.T, A), \confirmations)}(\boldsymbol\rho^*[\party'])
+  \neq \bot$ is the result of applying these transactions in the real world. Here,
+  $\boldsymbol\rho^*$ is taken to be the private state
+  corresponding to the prefix $\ledgerstate^*$ in the ideal world.
+
+  Now that $\tx$ is processed, we know by \ref{inv:dep} that its dependencies
+  are either in confirmed, and in order, in $\ledgerstate^*$, or in
+  $\phi_{\party'}.U$. In either case, $\tx$ is skipped in both worlds if it is a
+  replayed transaction, or if would set $\transcript_\sigma(\sigma) = \bot$. In
+  the ideal world, additionally it gets skipped if it would set the contract
+  state -- either $\sigma^i$ or $\boldsymbol\rho^i$ -- to $\bot$.
+
+  As $\tx \in \phi_{\party'}.U$, and is not a replay, $B = A \concat \tx$ is a
+  permutation of a subset of $\phi_{\party'}.U$. As a result, by \ref{inv:dep},
+  we know that $\transcript^*_{ES(\vn{map}(\phi_{\party'}.T,
+    B), \confirmations \concat \cdot)}(\boldsymbol\rho^*[\party']) \neq \bot$. As we've previously established
+  this holds for $A$, by definition of $\transcript^*$, this implies that\ 
+  applying $\transcript_\rho$ to $\boldsymbol\rho[\party']^i$ to any
+    confirmation depth is non-$\bot$, where
+  $\boldsymbol\rho[\party']^{i}$ is the same as the ideal world private state for
+  the induction hypothesis, by repeated application of \ref{inv:results}.
+  Likewise, \ref{inv:results} allows us to conclude that $\sigma^i$ will also be
+  non-$\bot$, as the update applied to it will be equivalent to applying
+    $\transcript_\sigma$ to the same confirmation depth, which by definition of
+    confirmation depth is not $\bot$.
+  
+  If the transaction is skipped in both worlds, the induction hypothesis still
+  applies. Otherwise, up to the confirmation depth, applying both public
+    and private state transcript parts is non-$\bot$. As previously
+  noted in \autoref{sec:oracles}, this is equivalent to partial oracle
+    executions to this confirmation depth, and therefore the ideal and real
+    world states match.\ Likewise, \ref{inv:results} applies (as by \ref{inv:honestrec},
+  $\phi_{\party'}.Y(\tx)$ is set), and we know the ideal-world result $y^i =
+  \phi_{\party'}.Y(\tx)[c]$, where $c$ is the
+    confirmation depth.
+
+  As in the real world $\sigma^r \gets \transcript_\sigma(\sigma^r)$, their
+  equality is preserved.\ If $\party = \party'$, by \ref{inv:honestrec},
+  $\phi_\party.T$ is defined, and as a result, the same update is carried out to
+  $\rho$ in the real world, as to $\boldsymbol\rho^i[\party]$ in the ideal
+  world. Further, it will return the same result $y^r$ as the ideal world, as
+  $\vn{proj}_c(\phi_\party.Y(\tx)) = y^i$. If $\party \neq \party'$, the ideal world update
+  does not affect $\boldsymbol\rho^i[\party]$, and the correctness of the
+  returned private state is guaranteed by the induction hypothesis. $y^r = \bot$
+  is returned, which satisfies the requirements. Finally, in both cases,
+  if the confirmation depth is maximal, the transaction is added to $C$, ensuring the returned $C$ is
+  the same in both worlds. Neither world makes any state updates, trivially
+  preserving $\boldsymbol I$.
+  \qed
+\end{proof}
+
+\begin{lemma}
+  \sloppy
+  If $\boldsymbol I$ holds, then for all $\party \in \honest$, running
+  $\vn{updateState}(\party)$ in $\fsc$, and running $\vn{updateState}$
+  in $\phi_\party$ preserves $\boldsymbol I$.
+  \label{lem:updatestate}
+\end{lemma}
+
+\fussy
+\begin{proof}
+  To begin with, both worlds retrieve the same value $\ledgerstate$ /
+  $\ledgerstate_\party$ from $\gl$, due to \ref{inv:ledger}. As seen in
+  \autoref{sec:proof}, this preserves $\boldsymbol I$. Next, by
+  \autoref{lem:execpreserve}, both worlds receive the same value $C$, and the
+  $\vn{execConfirmed}$ call preserves $\boldsymbol I$. The worlds now iterate over
+  $\phi_\party.U$ and $\fsc.U_\party$ respectively, which by
+  \ref{inv:unconfirmed} are equal in value. The operations performed are almost
+  identical, with the exception of the real world deconstructing $u = (\cdot, D,
+  \cdot)$ for each $u \in U$, while the ideal world extracts $(\ldots, D) =
+  \fsc.T(u)$ instead. By \ref{inv:anyrec}, if $u \in \fsc.T$, the two are
+  equivalent, and by \ref{inv:honestrec}, as $u \in \phi_\party.U$, it is also
+  in both $\phi_\party.T$, and $\fsc.T$. We conclude that both worlds perform
+  the same operations. Updated is only $\phi_\party.U$ and $\fsc.U_\party$
+  respectively. The following parts of the invariant are affected and preserved:
+
+  \begin{enumerate}
+    \item[\ref{inv:honestrec}] By reducing the scope of $\phi_\party.U$.
+    \item[\ref{inv:dep}] This consists of three sub-parts: The satisfaction of
+      $J$, that of $\vn{sat}$, and that $D \setminus C \setminus U =
+      \varnothing$. The first is trivial: $J$ makes a statement about all
+      permutations of subsets. A smaller initial set merely reduces the scope of
+      the quantifiers. The second holds due to $\vn{updateState}$ ensuring that
+      if a transaction is removed from $U$, any transactions that depend on it
+      are also removed, with the remaining transactions being in the same order
+      as before. As a result, a previously satisfied transaction is either
+      removed itself, or still satisfied, as it does not depend on any removed
+      transactions, and dependencies still in $U$ being in the same order as
+      before. Finally, $D \setminus C \setminus U = \varnothing$ is also
+      preserved due to the recursive removal. Specifically, if $D \nsubseteq (C
+      \cup U)$ the corresponding transaction is removed. As a result, only
+      transactions satisfying this condition will remain.
+    \item[\ref{inv:unseenunconfirmed}] As the removed transactions either fail
+      confirmation directly (it depends on a transaction rejected in
+      $\ledgerstate_\party$, or a different transaction order than got
+      enforced), or depends on a transaction which fails. In either case, any
+      state $\ledgerstate'$, of which $\ledgerstate_\party$ is a prefix, cannot
+      accept these for the same reasons.
+    \item[\ref{inv:postunrecorded}] As in \ref{inv:unseenunconfirmed}.
+    \item[\ref{inv:unconfirmed}] By equal update.
+  \qed
+  \end{enumerate}
+\end{proof}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:

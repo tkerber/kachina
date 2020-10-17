@@ -1,0 +1,37 @@
+\begin{figure}[ht]
+\begin{center}
+\begin{tikzpicture}[x=1cm,y=1cm]
+  \node (sb1) at (0,1) {$\simul_{\mathcal{B}}$};
+  \node (a1) at (1,1) {$\mathcal{A}$};
+  \node (d1) at (2,1) {$\mathcal{D}$};
+  \draw[color=Red] (0,1.75) -- (sb1.north);
+  \draw[color=Cyan] (1,1.75) -- (a1.north);
+  \draw[color=Green] (2,1.75) -- (d1.north);
+  \draw[color=Green] (a1.south) -- (1,.5) -- (1.5,.5) -- (1.5,1.5) -- (2,1.5);
+  \draw[color=Purple] (d1.east) -- (2.5,1) -- (2.5,1.75);
+  \draw[color=Orange] (sb1.east) -- (a1.west);
+  \node[circle,fill,inner sep=1pt,color=Green] at (2,1.5) {};
+
+  \node (sb2) at (4,1) {$\simul_{\mathcal{B}}$};
+  \node (a2) at (5,1) {$\mathcal{A}$};
+  \node (c2) at (6,1) {$\mathcal{C}$};
+  \node (sd2) at (7,1) {$\simul_{\mathcal{D}}$};
+  \draw[color=Red] (4,1.75) -- (sb2.north);
+  \draw[color=Cyan] (5,1.75) -- (a2.north);
+  \draw[color=Green] (6,1.75) -- (c2.north);
+  \draw[color=Green] (a2.south) -- (5,.5) -- (5.5,.5) -- (5.5,1.5) -- (6,1.5);
+  \draw[color=Magenta] (c2.east) -- (sd2.west);
+  \draw[color=Purple] (sd2.north) -- (7,1.75);
+  \draw[color=Orange] (sb2.east) -- (a2.west);
+  \node[circle,fill,inner sep=1pt,color=Green] at (6,1.5) {};
+  \node at (3.15,1) {$\approx$};
+\end{tikzpicture}
+\end{center}
+\caption{Visual equivalence for idealizing the sub-protocol $\mathcal{D}$.}
+\label{fig:commucstep1}
+\end{figure}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:

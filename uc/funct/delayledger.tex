@@ -1,0 +1,47 @@
+\begin{functionality}{$\gdelayledger$}
+  The $\delay$-delay ledger adds liveness guarantees to $\gsimpleledger$,
+  ensuring that sufficiently old transactions are always visible to honest
+  parties.
+  \begin{statedecl}
+    \statevar{\ledgerstate}{\epsilon}{Authoritative ledger state}
+    \statevar{M}{\lambda \party . \epsilon}{Mapping of parties to ledger states}
+    \statevar{U}{\varnothing}{Multiset of unconfirmed transactions}
+  \end{statedecl}
+  \begin{receive}{submit}{\tx}
+    \State \SendAndReceive{read}{}{\gclock}{t}
+    \State \Let $U \gets U \cup \set{(\tx, t)}$
+    \State \QueryAdv{transaction}{\tx, t}
+  \end{receive}
+  \begin{receive}{read}{}
+    \State \Assert $\mathsf{liveness}$
+    \State \Return $\mathsf{map}(\vn{proj}_1, M(\party))$
+  \end{receive}
+  \begin{receive}[adversary]{extend}{\ledgerstate'}
+    \If{$\ledgerstate' \subseteq U$}
+      \State \Let $U \gets U \setminus \ledgerstate'$
+      \State \Let $\ledgerstate \gets \ledgerstate \concat \ledgerstate'$
+    \EndIf
+  \end{receive}
+  \begin{receive}[adversary]{advance}{\party, \ledgerstate'}
+    \If{$M(\party) \prec \ledgerstate' \prec \ledgerstate$}
+      \State \Let $M(\party) \gets \ledgerstate'$.
+    \EndIf
+  \end{receive}
+  \begin{helpers}
+    \Procedure{$\mathsf{liveness}$}{}
+      \State \SendAndReceive{read}{}{\gclock}{t}
+      \If{$\exists (\tx, t') \in U : |t - t'| > \delay$}
+        \Return $\bot$
+      \ElsIf{$\exists (\tx, t') \in \ledgerstate : |t - t'| > \delay \land
+          \exists \party \in \honest : (\tx, t') \notin M(\party)$}
+        \Return $\bot$
+      \Else
+        ~\Return $\top$
+      \EndIf
+    \EndProcedure
+  \end{helpers}
+\end{functionality}
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../../main"
+%%% End:

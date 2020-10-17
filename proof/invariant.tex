@@ -1,0 +1,171 @@
+\subsection{The Invariant $\boldsymbol I$}
+
+\begin{definition}
+  The invariant $\boldsymbol I$ is the conjunction of all of the constraints
+  below, over the state variables of UC experiment on a pair of matching real
+  and ideal worlds:
+
+\begin{enumerate}[label={(\arabic*)}]
+  \item The ledgers are indistinguishable:
+
+    $\gl^i.\ledgerstate = \gl^r.\ledgerstate \land \forall \party \in \honest :
+    \gl^i.M(\party) = \gl^r.M(\party)$
+    \label{inv:ledger}
+  \item The simulated and real NIZKs consider the same statement/proof pairs
+    valid and invalid:
+
+    $\simul.\fnizk.\proofs = \fnizkr.\proofs \land \simul.\fnizk.\disproofs =
+    \fnizkr.\disproofs$
+    \label{inv:proofs}
+  \item Real world witnesses have a corresponding ideal world witness:
+
+    $\forall \transcript_\sigma, D, \nizkproof : \exists \transcript_\rho, w :
+    \fnizkr.W(((\transcript_\sigma, D), \nizkproof)) = (\transcript_\rho, w)
+    \allowbreak\implies \simul.\fnizk.W(((\transcript_\sigma,\allowbreak D), \nizkproof)) =
+    (\transcript_\rho, w) \lor [\exists \party \in \honest, z = (\sigma^o,
+    \rho^o, \sigma^\pi, \rho^\pi, \eta) : \phi_\party.T((\transcript_\sigma, D,
+    \nizkproof)) = (\transcript_\rho, z) \land\allowbreak \fsc.\allowbreak T((\transcript_\sigma,\allowbreak D,\allowbreak
+    \nizkproof)) = (\party, w, (\transcript_\sigma, z), \varnothing, D) \land
+    \runtnsfn(\sigma^\pi, \rho^\pi, w,\allowbreak z, \top) = (\cdot, \transcript_\sigma,
+    \cdot, \transcript_\rho, \allowbreak\phi_\party.Y((\transcript_\sigma, D,
+    \nizkproof)))]$\label{inv:wit}
+  \item Recorded transactions are proven, and only adversarial witnesses are
+    known by the simulator:
+
+    $\forall \transcript_\sigma, D, \nizkproof, \party :
+    \fsc.T((\transcript_\sigma, D, \nizkproof)) = (\party,
+    \ldots) \implies ((\transcript_\sigma,\allowbreak D),\allowbreak\nizkproof) \in
+    \fnizkr.\proofs \land (\party \notin \honest \iff ((\transcript_\sigma,
+    D), \nizkproof) \in \simul.\fnizk.W)$
+    \label{inv:honestwit}
+  \item Honest parties record transactions correctly:
+
+    $\forall \party \in \honest, \tx : \tx \in \phi_\party.T \iff \tx \in
+    \phi_\party.Y \iff \fsc.T(\tx) \allowbreak = (\party, \ldots) \land \tx \in
+    \phi_\party.U \implies \tx \in \phi_\party.T$
+    \label{inv:honestrec}
+  \item All recorded transactions respect dependencies and transcripts:
+
+    $\forall \tx \in \fsc.T : \fsc.T(\tx) = \textsc{none} \lor (\exists
+    \transcript, D, \nizkproof : \tx = (\transcript, D, \nizkproof) \land
+    \fsc.T(\tx) = (\cdot, \cdot, (\transcript, \cdot), \varnothing,
+    D))$\label{inv:anyrec}
+  \item Recorded as rejected transactions are disproven:
+
+    $\forall \transcript_\sigma, D, \nizkproof : \fsc.T((\transcript_\sigma, D,
+    \nizkproof)) = \textsc{none} \implies ((\transcript_\sigma, D),\allowbreak \nizkproof)
+    \in \fnizkr.\disproofs$
+    \label{inv:rejected}
+  \item \sloppy The dependency invariant $J$ holds for all honest unconfirmed
+    transactions: $\forall \party \in \honest$, let $\ledgerstate$ be the
+    longest prefix of $\gl^r.M(\party)$ such that $\ledgerstate \cap
+    \phi_\party.U = \varnothing$; define $X(u = (\cdot, D, \cdot)) \eqdef
+    \text{let } (\transcript, z) = \phi_\party.T(u) \text{ in } (u,
+    \vn{split}(\transcript,\allowbreak \msg{commit}{}),
+    z, D)$, and $((\cdot, \rho), \cdot, C) \eqdef
+    \phi_\party.\vn{exec}(\ledgerstate)$. Then $J(\vn{map}(X, \phi_\party.U),
+    \rho) \land \vn{sat}(\vn{map}(X, \phi_\party.U), \phi_\party.U) \land
+    \forall (\cdot, D, \cdot) \in \phi_\party.U: D \setminus C \setminus
+    \phi_\party.U = \varnothing$ holds.
+    \label{inv:dep}
+  \item \fussy Transactions owned by an honest party, and not in their view of the
+    ledger, are considered unconfirmed, or can never be accepted: Let
+    $\ledgerstate$ be the longest prefix of $\gl^r.M(\party)$ such that $\forall
+    \tx \in \ledgerstate : \tx \in \fsc.T$.
+
+    $\forall \party \in \honest, \tx \notin \ledgerstate : \fsc.T(\tx) =
+    (\party, \ldots) \implies \tx \in \phi_\party.U \lor (\nexists \ledgerstate'
+    \succ \gl^r.M(\party) : \tx \in \fsc.\vn{execConfirmed}(\ledgerstate' \concat
+    \tx)$\label{inv:unseenunconfirmed}
+  \item All results and state updates are consistent with the input and
+    transcripts:
+
+    \begin{algorithmic}
+      \Function{$\vn{transcriptConsistent}$}{$\sigma_0, \rho_0, w, z,
+          \transcript_\sigma, \transcript_\rho, Y$}
+        \State \Let $(\partstate{\sigma}, \cdot, \partstate{\rho}, \partresults)
+          \gets \runtnsfn(\sigma_0, \rho_0, w, z, \top)$
+        \State \Let $\splittranscript_\sigma \gets
+          \vn{split}(\transcript_\sigma, \msg{commit}{})$
+        \State \Let $\splittranscript_\rho \gets \vn{split}(\transcript_\rho,
+          \msg{commit}{})$
+        \State \Let $\sigma \gets \sigma_0; \rho \gets \rho_0$
+        \State \Let $\vn{parts} \gets \vn{zip}(\partstate{\sigma},
+          \partstate{\rho}, \splittranscript_\sigma, \splittranscript_\rho,
+          \partresults, Y)$
+        \For{$(\sigma', \rho', \transcript_\sigma', \transcript_\rho', y_1, y_2) \gets
+            \vn{parts}$}
+          \State \Let $\sigma \gets \transcript_\sigma(\sigma); \rho \gets \transcript_\rho(\rho)$
+          \If{$\sigma = \bot$}
+            \Break
+          \ElsIf{$\sigma \neq \sigma' \lor \rho \neq \rho' \lor y_1 \neq y_2$}
+            \Return $\bot$
+          \EndIf
+        \EndFor
+        \State \Return $\top$
+      \EndFunction
+    \end{algorithmic}
+    $\forall \party \in \honest, \transcript_\sigma, \tx = (\transcript_\sigma,
+    \cdot, \cdot), w, z: \fsc.T(\tx) = (\party, w, z,\allowbreak \varnothing, \cdot)
+    \implies [\exists \transcript_\rho : \phi_\party.T(\tx) = (\transcript_\rho,
+    z) \land \phi_\party.Y(\tx) = \tnsfnkachina_{\oracle(\transcript_\sigma),
+      \oracle(\transcript_\rho)}(w) \land [\forall \sigma, \rho :
+    \vn{transcriptConsistent}(\sigma,\allowbreak \rho, w, z,\allowbreak \transcript_\sigma,
+      \transcript_\rho, \phi_\party.Y(\tx))]]$
+    \label{inv:results}
+  \item Execution results should be equivalent for prefixes \emph{and}
+    extensions of the ledger state containing no new adversarial transactions:
+
+    $\forall \ledgerstate, \party \in \honest : ((\ledgerstate \prec
+    \gl^r.\ledgerstate \lor \gl^r.\ledgerstate \prec \ledgerstate) \land \forall
+    \tx \in \ledgerstate : \fsc.T(\tx) \neq \bot) \implies
+    \text{let } ((\sigma^i, \boldsymbol\rho^i), y^i, C^i) \gets
+    \fsc.\allowbreak\vn{exec}(\ledgerstate); ((\sigma^r, \rho^r), y^r, C^r)
+    \gets \phi_\party.\vn{exec}(\ledgerstate) \text{ in } \sigma^i = \rho^i
+    \land \boldsymbol\rho^i[\party] = \rho^r \land C^i = C^r \land \text{ if }
+    \fsc.T(\ledgerstate[-1]) = (\party, \ldots) \allowbreak\text{ then } y^r
+    = y^i \text{ else } y^r = \bot$
+    \label{inv:execcons}
+  \item Recorded transactions which are canonically preceeded by a (yet)
+    unrecorded transaction, are honest, and considered unconfirmed by their
+    owner:
+
+    $\forall \tx \in (\fsc.T \cap \gl^r.\ledgerstate), \tx' \in
+    (\gl^r.\ledgerstate \setminus \fsc.T), \party \in \honest :
+    \vn{idx}(\gl^r.\ledgerstate, \tx') < \vn{idx}(\gl^r.\ledgerstate, \tx) \land
+    \fsc.T(\tx) = (\party, \ldots) \implies \tx \in \phi_\party.U \lor (\nexists
+    \ledgerstate' \succ \gl^r.\ledgerstate : \tx \in
+    \fsc.\vn{execConfirmed}(\ledgerstate' \allowbreak\concat\allowbreak \tx))$\label{inv:postunrecorded}
+  \item The ledger is ahead of any party's ledger:
+
+    $\forall \party \in \honest : \gl^r.M(\party) \prec \gl^r.\ledgerstate$
+    \label{inv:ledgerord}
+  \item The same transactions are unconfirmed in both worlds:
+
+    $\forall \party \in \honest : \phi_\party.U =
+    \fsc.U_\party$\label{inv:unconfirmed}
+  \item NIZK proofs have witnesses:
+
+    $\forall x, \nizkproof: (x, \nizkproof) \in \fnizkr.\proofs \iff (\exists w :
+    \fnizkr.W((x, \nizkproof)) = w \land \simul.\fnizk.W((x, \nizkproof)) \in
+    \set{w, \bot} \land (x, w) \in \lang)$
+    \label{inv:iswit}
+  \item Recorded transactions are either on the ledger, considered unconfirmed
+    by an honest party, or can never be satisfied:
+
+    $\forall \tx \in \fsc.T : \tx \in \gl.\ledgerstate \lor (\exists \party \in
+    \honest : \tx \in \phi_\party.U \land \fsc.T(\tx) = (\party, \ldots)) \lor
+    (\nexists \ledgerstate' \succ \gl.\ledgerstate : \tx \in \allowbreak
+    \fsc.\allowbreak\vn{execConfirmed}(\ledgerstate' \concat \tx))$
+    \label{inv:recordedunconf}
+\end{enumerate}
+\end{definition}
+
+Often many of these parts of the invariant are trivially preserved due to the
+state variables constrained in them being left unchanged. Such trivial cases
+will be omitted in our analysis.
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:

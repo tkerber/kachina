@@ -1,0 +1,156 @@
+\begin{transitionfn}{$\tnsfnkachina_{\vn{scs}}$}
+  \sloppy
+  The multiplexing with registration, loopback, payments, and fees transition
+  function $\tnsfnkachina_{\vn{scs}}$ allows addressing any pair of address and
+  sub-transition function $(a, \tnsfnkachina)$. These sub-transition functions may
+  return values of either $\msg{call}{A, M}$, or $\msg{return}{y}$. In the
+  former case, a different sub-transition function is invoked, and the value it
+  eventually returns is fed back into the original one, by re-invoking it with
+  $\msg{resume}{y}$. The transition function first estimates the cost of
+    this call, and pays for it in advance. This payment is then deduced from for
+  executions, until a remainder is refunded at the end of a successful call.
+
+  \fussy
+  \begin{pubstatedecl}
+    \statevar{\Sigma}{\varnothing}{Mapping from address pairs to public states}
+    \statevar{\vn{spare}}{0}{Temporary book-keeping of the value to return}
+  \end{pubstatedecl}%
+  \vspace{-1em}
+  \begin{privstatedecl}
+    \statevar{\Rho}{\varnothing}{Mapping from address pairs to private states}
+  \end{privstatedecl}
+
+  \begin{receiveinput}{token}{w}
+    \State \Assert $w \neq \msg{system-send}{\ldots}$
+    \State \Let $\oracle_\sigma' \gets \lambda q :
+      \oracle_\sigma(\vn{muxPubOracle}(\textsc{token}, q))$
+    \State \Let $\oracle_\rho' \gets \lambda q :
+      \oracle_\rho(\vn{muxPrivOracle}(\textsc{token}, q))$
+    \State \Return $\tnsfnkachina_{\vn{sp},\oracle_\sigma', \oracle_\rho'}(w)$
+  \end{receiveinput}
+
+  \begin{receiveinput}{call}{\vn{gasPrice},\allowbreak v, A = (i, \tnsfnkachina,\allowbreak \vn{desc},\allowbreak \vn{dep}),\allowbreak w}
+    \State \Let $\pk \gets \tnsfnkachina_{\vn{scs},\oracle_\sigma,\oracle_\rho}\msg{token}{\msg{send}{A, v}}$
+    \mkpriv
+    \SplitState{\SendAndReceive{estimate-cost}{v, \pk, A, w}{\oracle_\rho}{(g_\transcript,
+      g_\oracle)}}
+    \mknorm
+    \State \textbf{run} $\tnsfnkachina_{\vn{scs},\oracle_\sigma,\oracle_\rho}\msg{token}{\msg{send}{\textsc{fee-pot},
+        g_\transcript \times \vn{gasPrice}}}$
+    \State \textbf{run} $\tnsfnkachina_{\vn{scs},\oracle_\sigma,\oracle_\rho}\msg{token}{\msg{send}{\textsc{fee-pot},
+        g_\oracle \times \vn{gasPrice}}}$
+    \State \textbf{commit} \textsc{gas-paid}
+    \mkpub
+    \State \Send{init-gas}{g_\oracle}{\oracle_\sigma}
+    \mknorm
+    \State \Let $y \gets \vn{call}_{\oracle_\sigma,\oracle_\rho}(v, \pk, A, w)$
+    \mkpub
+    \State \Send{deinit}{\pk, \vn{gasPrice}}{\oracle_\sigma}
+    \mknorm
+    \State \Return $y$
+  \end{receiveinput}
+
+  \vsep
+  \mkpub
+  \begin{receivequery}{public}{init-gas}{g_\oracle}
+    \State \Let $\sigma.\vn{spare} \gets g_\oracle$
+  \end{receivequery}
+  \begin{receivequery}{public}{deinit}{\pk, \vn{gasPrice}}
+    \State \Run $\tnsfnkachina_{\vn{sp}}(\textsc{fee-pot}, \pk, \sigma.\vn{spare} \times \vn{gasPrice})$
+    \State \Let $\sigma.\vn{spare} \gets 0$
+  \end{receivequery}
+  \mknorm
+  \vsep
+  \mkpriv
+  \begin{receivequery}{private}{estimate-cost}{v,\allowbreak \pk,\allowbreak A,\allowbreak w}
+    \State \Let $\oracle_\sigma' \gets \oracle((\sigma^\pi, \epsilon, 0); \oracle_\rho' \gets \oracle(\rho^\pi)$
+    \State \Let $\oracle_\sigma'' \gets \lambda q: \oracle_\sigma'(\vn{muxEst}(q))$
+    \State \textbf{run} $\vn{call}_{\oracle_\sigma'', \oracle_\rho'}(v,
+      \pk, A, w)$
+    \State \Let $(\cdot, \transcript, g) \gets \vn{state}(\oracle_\sigma)$
+    \State \Return $(\tnsfncostmodel(\transcript), g)$
+  \end{receivequery}
+  \mknorm
+
+  \begin{helpers}
+    \Function{$\vn{subCall}_{\oracle_\sigma,\oracle_\rho}$}{$v, A, A' = (i,
+        \tnsfnkachina, \vn{desc}, \vn{dep}), w$}
+      \State \Assert $A' \neq \textsc{token}$
+      \State \Let $\oracle_\sigma' \gets \lambda q :
+        \oracle_\sigma(\vn{muxPubOracle}(\textsc{token}, q))$
+      \State \Let $\oracle_\rho' \gets \lambda q :
+        \oracle_\rho(\vn{muxPrivOracle}(\textsc{token}, q))$
+      \State \Run $\tnsfnkachina_{\vn{sp},\oracle_\sigma',
+        \oracle_\rho'}\msg{system-send}{A, A', v}$
+      \State \Let $y \gets \vn{call}_{\oracle_\sigma,\oracle_\rho}(v, A, A', w)$
+      \State \Return $y$
+    \EndFunction
+    \Function{$\vn{call}_{\oracle_\sigma,\oracle_\rho}$}{$v, A, A' = (\cdot, \tnsfnkachina, \cdot, \cdot), w$}
+      \State \Let $\oracle_\sigma' \gets \lambda q :
+        \oracle_\sigma(\vn{muxPubOracle}(A', q))$
+      \State \Let $\oracle_\rho' \gets \lambda q :
+        \oracle_\rho(\vn{muxPrivOracle}(A', q))$
+      \State \Let $c \gets 0; e \gets 0$
+      \Repeat
+        \State \Let $y \gets \tnsfnkachina_{\oracle_\sigma',
+            \oracle_\rho'}\msg{call}{A, y, w}$
+        \State \Let $c \gets c + c'$
+        \If{$\exists v', A'', w' : y = \msg{call}{v', A'', w'}$}
+          \State \Let $y \gets \vn{subCall}_{\oracle_\sigma,\oracle_\rho}(v', A', A'', w')$
+          \State \Let $c \gets c + c';w \gets \msg{resume}{y}$
+        \EndIf
+      \Until{$\exists y' : y = \msg{return}{y'}$}
+      \State \Return $y$
+    \EndFunction
+    \Function{$\vn{muxPubOracle}$}{$A, q, \sigma, \varnothing$}
+      \If{$A \notin \sigma.\Sigma$}
+        \Let $\sigma.\Sigma(A) \gets \varnothing$
+      \EndIf
+      \State \Let $\sigma' \gets \sigma.\Sigma(A)$
+      \State \Let $r \gets \oraclecostmodel(q, \sigma', \sigma.\vn{spare})$
+      \If{$r = \bot$}
+        \State $\sigma.\vn{spare} \gets 0$
+        \State \Return $(\bot, y)$
+      \EndIf
+      \State \Let $(\sigma', g', y) \gets r;$
+      \If{$\sigma' = \bot$}
+        \State $\sigma.\vn{spare} \gets 0$
+        \State \Return $(\bot, y)$
+      \Else
+        \State $\sigma.\Sigma(A) \gets \sigma'; \sigma.\vn{spare} \gets g'$
+        \State \Return $(\sigma, y)$
+      \EndIf
+    \EndFunction
+    \Function{$\vn{muxPrivOracle}$}{$A, q, \rho, (\sigma^o, \rho^o,
+        \sigma^\pi, \rho^\pi, \eta)$}
+      \SplitState{\Let $(\rho.\Rho, \sigma^o.\Sigma. \rho^o.\Rho, \sigma^\pi.\Sigma,
+        \rho^\pi.\Rho) \gets\allowbreak \vn{forceInitMaps}(\allowbreak(\rho.\Rho,
+        \sigma^o.\Sigma, \rho^o.\Rho, \sigma^\pi.\Sigma, \rho^\pi.\Rho), A,
+        \varnothing)$}
+      \State \Let $\rho' \gets \rho.\Rho(A)$
+      \State \Let $z' \gets (\sigma^o.\sigma_i, \rho^o.\rho_i,
+        \sigma^\pi.\sigma_i, \rho^\pi.\rho_i, \eta)$
+      \State \Let $(\rho', y) \gets q(\rho', z')$
+      \If{$\rho' = \bot$}
+        \Return $(\bot, y)$
+      \Else
+        \State \Let $\rho.\Rho(A) \gets \rho'$
+        \State \Return $(\rho, y)$
+      \EndIf
+    \EndFunction
+    \Function{$\vn{muxEst}$}{$q, \sigma, \varnothing$}
+      \State \Let $(\sigma', \transcript, g) \gets \sigma$
+      \State \Let $(\sigma', g', y) \gets \oraclecostmodelest(q, \sigma', \varnothing)$
+      \If{$\sigma' = \bot$}
+        \Return $(\bot, y)$
+      \Else
+        \State \Return $((\sigma', \transcript \concat [(q, y)], g + g'), y)$
+      \EndIf
+    \EndFunction
+  \end{helpers}
+\end{transitionfn}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../../main"
+%%% End:

@@ -1,0 +1,48 @@
+\begin{functionalitysketch}{$\fsc$}
+  The smart contract functionality $\fsc$ allows parties to query a
+  deterministic state machine determined by $\tnsfn$ and $\lkgfn$ in a
+  ledger-specified order.
+
+  \vspace{1em}\noindent\emph{Executing a ledger view:}
+
+  Starting with an initial state $\jointstate \gets \varnothing$,
+  and an empty set of confirmed transactions: For each transaction
+  in the ledger's view, if the transaction is unknown, allow the adversary to supply its inputs.
+  Next, verify the transaction's dependencies, and that, for $(\jointstate', c, y) \gets
+  \tnsfn(\jointstate, \ldots)$, $\jointstate' \neq \bot$. If both are satisfied, update
+  $\jointstate$ to $\jointstate'$, and record the transaction as confirmed\ if
+  $c$ is $\top$. If an
+  execution output is requested, return $y$, or $\bot$ if the execution failed. If, on the other hand, one of the
+  preconditions is not satisfied, skip this transaction.
+
+  \vspace{1em}\noindent\emph{Prior to any interaction by $\party$:}
+
+  Compute which transactions have been rejected in $\party$'s view of the ledger
+  state, and remove any unconfirmed transactions for $\party$ that (directly
+  or indirectly) depend on them.
+
+  \begin{receivesketch}[honest]{post-query}{w}
+    Retrieve $\party$'s current view $\partyview$ of the contract. Feed this,
+    together with the party identifier, and the input $w$ to $\lkgfn$.
+
+    Ask $\party$ if the leakage description returned is acceptable. If so, query
+    the adversary for a unique transaction ID $\tx$, and some adversarial input
+    corresponding to the leakage, and the transaction's dependencies. Record the
+    original input, the adversarial input, the context returned by $\lkgfn$, and
+    the transaction's dependencies as being associated with $\tx$ and $\party$.
+    Record the transaction as unconfirmed for $\party$, send
+    $\msg{submit}{\tx}$ to $\gledger$, and finally return $\tx$.
+  \end{receivesketch}
+
+  \begin{receivesketch}[honest]{check-query}{\tx}
+    If $\tx$ is owned by $\party$, and is in their current view of the ledger,
+    compute and return the output by executing the ledger view up to $\tx$.\ If
+    $\tx$ is not in their ledger view, return $\msg{not-found}{}$.
+  \end{receivesketch}
+\end{functionalitysketch}
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../../../main"
+%%% End:

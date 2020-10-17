@@ -1,0 +1,36 @@
+To demonstrate the versatility of \kachina, we take a closer look at the
+(private) token contract, which is prone to the scalability issues \kachina\
+addresses. Public token contracts are well understood, and
+standardized~\cite{erc20}, with the typical implementation being to maintain a
+mapping of ``addresses'' (hashes of public keys) to balances in the contract's
+public state. We write the first \emph{provably private} token contract to
+demonstrate the expressive power of \kachina.
+
+A private token contract also implies that currency is not a primitive -- it can
+be built as a contract, a key factor in simplifying our model, as it does
+not need to encode currency as a special case. It provides an asset to
+build contracts around in the first place, as well as a means of
+denial-of-service mitigation, through transaction fees. Bad fee models have
+resulted in devastating DoS attacks~\cite{ethereumdos},
+highlighting their necessity.
+
+We detail how to construct a fee model in
+  \iffull\autoref{sec:fees}\else\cite[Appendix~J.5]{fullversion}\fi. The
+  fundamental idea of this construction is to embed the transition function
+  $\tnsfnkachina$ in a wrapper which performs the following steps:
+
+\begin{enumerate}
+  \item In the private state oracle, estimate the cost of transaction
+    fees.
+  \item Given an input gas price, and this estimate, pay these fees using a
+    designated currency contract.
+  \item Commit this as a partial execution success.
+  \item Execute $\tnsfnkachina$ with a modified $\oracle_\sigma$, which deducts
+    from available gas for each operation and aborts if this runs out.
+  \item Transfer any remaining gas back to the transaction author.
+\end{enumerate}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:

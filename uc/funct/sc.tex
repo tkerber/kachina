@@ -1,0 +1,117 @@
+\begin{functionality}{$\fsc$}
+  The smart contract functionality $\fsc$ allows parties to query a
+  deterministic state machine determined by $\tnsfn$ and $\lkgfn$ in a
+  ledger-specified order. The exact semantics of the call are subject to
+  adversarial influence, who is provided some leakage, as defined in $\lkgfn$.
+  
+  \begin{statedecl}
+    \statevar{T}{\varnothing}{Mapping from transactions to their executing
+      components.}
+    \statevar{U_\party}{\epsilon}{Sequence of unconfirmed transactions, for all
+      parties $\party$}
+  \end{statedecl}
+
+  \begin{receive}[honest]{post-query}{w}
+    \State \Let $\ledgerstate_\party \gets \vn{updateState}(\party)$
+    \SplitState{\Let $\partyview \gets (|\ledgerstate_\party|, U_\party,
+      \vn{filter}(\lambda (\tx, \cdot): \tx \in U_\party, T),\allowbreak
+      \vn{execState}(\ledgerstate_\party))$}
+    \State \Let $(\vn{desc}, \vn{lkg}, D, z) \gets \lkgfn(\partyview, \party, w)$
+    \If{$\vn{desc} = \bot$}
+      \State \Return $\msg{rejected}{}$
+    \EndIf
+    \State  \SendAndReceive{leak}{\vn{desc}}{\party}{b}
+    \If{$b$}
+      \SplitState{\QueryAdv
+        [(\tx, a)][T(\tx) = \bot \land \tx \neq \bot]
+        [(\set{0,1}^\secparam, \bot)]
+        {transaction}{\vn{lkg}, D}}
+      \State \Let $T(\tx) \gets (\party, w, z, a, D);
+        U_\party \gets U_\party \concat \tx$
+      \State \Send[\party]{submit}{\tx}{\gledger}
+      \State \Return $\msg{posted}{\tx}$
+    \Else
+      \State \Return $\msg{rejected}{}$
+    \EndIf
+  \end{receive}
+
+  \begin{receive}[honest]{check-query}{\tx}
+    \State \Let $\ledgerstate_\party \gets \vn{updateState}(\party)$
+    \If{$\tx \in \ledgerstate_\party$}
+      \If{$T(\tx) = (\party, \ldots)$}
+        \State \Return $\vn{execResult}(\vn{prefix}(\ledgerstate_\party, \tx))$
+      \Else
+        ~\Return $\bot$
+      \EndIf
+    \Else
+      ~\Return $\msg{not-found}{}$
+    \EndIf
+  \end{receive}
+
+  \begin{helpers}
+    \Procedure{$\vn{updateState}$}{$\party$}
+      \SplitState{\SendAndReceive[\party]{read}{}{\gledger}{\ledgerstate_\party}}
+      \State \Let $C \gets \vn{execConfirmed}(\ledgerstate_\party)$
+      \State \Let $U_\party' \gets U_\party$
+      \Repeat
+        \State \Let $U_\party \gets U_\party'$
+        \For{$\tx \loopin U_\party$}
+          \State \Let $(\ldots, D) \gets T(\tx)$
+          \If{$D \nsubseteq (C \cup U_\party) \lor (D \cap C) \not\sqsubseteq \ledgerstate_\party$}
+            \State \Let $U_\party' \gets U_\party' \setminus \set{\tx}$
+          \EndIf
+        \EndFor
+      \Until{$U_\party = U_\party'$}
+      \State \Return $\ledgerstate_\party$
+    \EndProcedure
+    \Procedure{$\vn{execState}$}{$\ledgerstate$}
+      \State $\textbf{let }(\jointstate, \cdot, \cdot) \gets \vn{exec}(\ledgerstate)
+      \textbf{ in return } \jointstate$
+    \EndProcedure
+    \Procedure{$\vn{execResult}$}{$\ledgerstate$}
+      \State $\textbf{let }(\cdot, y, \cdot) \gets \vn{exec}(\ledgerstate)
+      \textbf{ in return } y$
+    \EndProcedure
+    \Procedure{$\vn{execConfirmed}$}{$\ledgerstate$}
+      \State $\textbf{let }(\cdot, \cdot, C) \gets \vn{exec}(\ledgerstate)
+      \textbf{ in return } C$
+    \EndProcedure
+    \Procedure{$\vn{exec}$}{$\ledgerstate$}
+      \State \Let $\jointstate \gets \varnothing; y \gets \bot; C \gets \varnothing$
+      \For{$\tx \loopin \ledgerstate$}
+        \If{$\tx \in C$}
+          \Continue
+        \EndIf
+        \If{$T(\tx) = \bot$}
+          \SplitState{\QueryAdv[x = (\party, w, z, a, D)]
+            [\party \notin \honest]
+            [\set{\textsc{none}}]{input}{\tx}}
+          \If{$T(\tx) = \bot$}
+            \State \Let $T(\tx) \gets x$
+          \EndIf
+        \EndIf
+        \State $y \gets \bot$
+        \If{$T(\tx) = \textsc{none}$}
+          \Continue
+        \EndIf
+        \State \Let $(\party, w, z, a, D) \gets T(\tx)$
+        \If{$D \setminus C \neq \varnothing \lor D \not\sqsubseteq \ledgerstate$}
+          \Continue
+        \EndIf
+        \State \Let $(\jointstate', c, y) \gets \tnsfn(\jointstate, \party, w, z, a)$
+        \If{$\jointstate' \neq \bot$}
+          \Let $\jointstate \gets \jointstate'$
+        \EndIf
+        \If{$c$}
+          \Let $C \gets C \cup \set{\tx}$
+        \EndIf
+      \EndFor
+      \State \Return $(\jointstate, y, C)$
+    \EndProcedure
+  \end{helpers}
+\end{functionality}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../../main"
+%%% End:

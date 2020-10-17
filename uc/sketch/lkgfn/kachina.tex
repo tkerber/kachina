@@ -1,0 +1,19 @@
+\begin{leakagefnsketch}{$\lkgfnmainkachina(\tnsfnkachina, \vn{desc}, \vn{dep})$}
+  \vspace{-1em}
+  \begin{receiveinputsketch*}{$(\partyview = (\ell, U, T, \jointstate = (\sigma^o, \boldsymbol\rho^o)), \party, w)$}
+    Simulate applying all unconfirmed transactions in order, for a new
+    \emph{projected state}  $(\sigma^\pi, \boldsymbol\rho^\pi)$. Select a randomness stream
+    $\eta$, and set the context $z$ to the old state $(\sigma^o,
+    \boldsymbol\rho^o[\party])$, the projected state $(\sigma^\pi, \boldsymbol\rho^\pi[\party])$, and
+    $\eta$. Run $\tnsfnkachina$ against this projected state and context, and
+    retrieve the new states and transcripts $\transcript_\sigma$,
+    $\transcript_\rho$. Compute the dependencies $D$ and leakage description
+    $\vn{description}$, and return $(\vn{description}, \transcript_\sigma, D,
+    (\transcript_\sigma, z))$.
+  \end{receiveinputsketch*}
+\end{leakagefnsketch}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../../../main"
+%%% End:

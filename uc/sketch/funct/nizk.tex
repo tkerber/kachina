@@ -1,0 +1,20 @@
+\begin{functionalitysketch}{$\fnizk$}
+  The (non-malleable) non-interactive zero-knowledge functionality
+  $\fnizk$ allows proving of statements in an NP language $\lang$.
+
+  \begin{receivesketch}{prove}{x, w}
+    If $(x, w) \in \lang$, query the adversary for a unique NIZK proof
+    $\nizkproof$, and record the pair $(x, \nizkproof)$ as valid. Return
+    $\nizkproof$.
+  \end{receivesketch}
+  \begin{receivesketch}{verify}{x, \nizkproof}
+    If $(x, \nizkproof)$ has not been recorded as valid or invalid, query the
+    adversary for a witness. If a valid witness is supplied, record the pair as
+    valid, otherwise as invalid. Return if the pair has been recorded as valid.
+  \end{receivesketch}
+\end{functionalitysketch}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../../../main"
+%%% End:

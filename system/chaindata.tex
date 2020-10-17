@@ -1,0 +1,39 @@
+\subsection{Exporting Ledger Data}
+
+Real-world smart contract systems often have some means to extract limited
+information about the underlying consensus protocol, such as the hash of the
+most recent block, the address of the block's miner, or the length of the
+current chain. These can be useful in applications -- in particular the latter,
+as it gives an provides an imprecise clock for use in contracts.
+
+Clearly, these rely on tighter integration with the underlying consensus
+mechanism than \kachina\ provides. We can still capture the core idea, by having
+a sub-contract which manages such chain data, and allows this to be read and set
+arbitrarily\footnote{This could be expanded to allow only certain types of
+  setting -- such as advancing the time, but not rewinding it.}. We can then
+assume that the correct usage of this sub-contract is enforced by the validation
+of the underlying consensus mechanism -- transactions which attempt to
+``incorrectly'' set the chain data -- for any definition of ``correct'' will
+never reach the ledger.
+
+\subimport*{../uc/tnsfn/}{chaindata}
+
+
+The contract we present here does have a further issue: Since the loopback in
+our multiplexers occurs only in the main transition function, the transcripts it
+generates will commit to specific values for the ledger data upon transaction
+creation -- something which is likely not reasonable. A more complex loopback
+design, which we do not present here, would solve this: If calling into public
+or private parts of other contracts were permitted from within the public and
+private state oracles respectively.
+
+For both leakage descriptors and dependencies, we make use of our assumption
+that users cannot directly call $\msg{set}{}$.
+
+\subimport*{../uc/desc/}{chaindata}
+\subimport*{../uc/deps/}{chaindata}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:

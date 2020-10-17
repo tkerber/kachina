@@ -1,0 +1,21 @@
+\begin{algorithmic}
+  \Function{$\vn{dep}_{\vn{loopmux}}$}{$X, \transcript_\rho, z$}
+    \State \Let $S \gets \varnothing$
+    \For{$(q, r) \loopin \transcript_\rho$}
+      \State \Let $(A, \cdot) \gets \vn{unmuxOracle}((q, r))$
+      \State \Let $S \gets S \cup \set{A}$
+    \EndFor
+    \State \Let $D \gets \varnothing$
+    \For{$A = (\cdot, \cdot, \cdot, \vn{dep}) \loopin S$}
+      \State \Let $\transcript_\rho' \gets \vn{unmuxT}(\transcript_\rho, A)$
+      \State \Let $z' \gets \vn{unmuxZ}_{\vn{loopmux}}(z, A)$
+      \State \Let $X' \gets \vn{unmuxX}_{\vn{loopmux}}(X, A)$
+      \State \Let $D \gets D \cup \vn{dep}(X', \transcript_\rho', z')$
+    \EndFor
+    \State \Return $\vn{map}(\vn{proj}_1, X) \cap D$
+  \EndFunction
+\end{algorithmic}
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../../main"
+%%% End:

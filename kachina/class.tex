@@ -1,0 +1,47 @@
+\subsection{The Contract Class}
+\label{sec:classkachina}
+
+The core \kachina\ protocol can realize a class of smart contracts, with each
+contract being primarily defined by a restricted transition function
+$\tnsfnkachina$. This transition function is given oracle access to the calling
+user's private state $\rho_\party$ and the shared public state $\sigma$, as
+described in \autoref{def:oracle}. In addition to these oracle accesses,
+  $\tnsfnkachina$ can make $\msg{commit}{y}$ queries, which a) send
+  $\msg{commit}{}$ to both oracles, and b) record the value $y$ in a vector of
+  partial results $\partresults$.\ We write $\partresults \gets
+  \tnsfnkachina_{\oracle_\sigma, \oracle_\rho}(w)$ as running the transition
+  function against input $w$, with oracles $\oracle_\sigma$ and $\oracle_\rho$,
+  returning the vector of partial results $\partresults$. The final output of
+  $\tnsfnkachina$ is appended to $\partresults$ when it returns.\ The adversary
+can program its own private state oracle -- it corresponds to local computation,
+after all! Two minor functions are also used to define the corresponding ideal
+contract:
+\begin{itemize}
+  \item The leakage descriptor $\vn{desc}$, which receives the time $t$, the
+    sequence of secret-expanded unconfirmed transactions $X$, transcripts
+    $\transcript_\sigma, \transcript_\rho$, original input $w$, and context $z$
+    of new transactions as inputs, and returns a description of what leakage this
+    interaction will incur.
+  \item A dependency function $\vn{dep}$ satisfying \autoref{def:dep}.
+\end{itemize}
+
+\begin{definition}
+  $\classkachina$ is the set of all pairs $(\tnsfnmainkachina(\tnsfnkachina),\allowbreak
+  \lkgfnmainkachina(\tnsfnkachina, \vn{desc},\allowbreak \vn{dep}))$, for any
+  parameters $\tnsfnkachina$, $\vn{desc}$ and $\vn{dep}$, satisfying
+  \autoref{def:dep}.
+\end{definition}
+
+\noindent $\tnsfnmainkachina$ and $\lkgfnmainkachina$ operate as
+follows, with a full description in
+\iffull\autoref{sec:fullfuncts}\else\cite[Appendix~C]{fullversion}\fi. We assume the set of honest parties $\honest$ -- in
+the ideal world, this is known by the functionality, while in the real world we
+assume each party $\party$ will use $\honest = \{\party\}$.
+
+\subimport*{../uc/sketch/tnsfn/}{kachina}
+\subimport*{../uc/sketch/lkgfn/}{kachina}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:

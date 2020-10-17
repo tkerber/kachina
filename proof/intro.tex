@@ -1,0 +1,36 @@
+If an environment can distinguish between the ideal and real executions in
+presence of our simulator (see \autoref{sec:simulator}), then there must exist
+some polynomial sequence of interactions permitting it to distinguish with a
+non-negligible advantage. Broadly, each of the environment's actions fall into
+one of three categories: a) Honestly interacting with the protocol. b) Honestly
+interacting with the ledger. c) Commanding the adversary to perform some action
+in the real world. We will consider the responses the environment makes to
+queries given to the dummy adversary separately, in each case at the point where
+the query is made.
+
+We will consider in parallel two random variables of the state of the ideal
+world execution, and that of the real world execution at any time. We leave out
+of our analysis the ``stack'' of partial executions (as described in
+\autoref{sec:conventions}), except to show that the flow of each party -- i.e.
+when it is waiting for which query to be answered -- is the same in both worlds.
+In particular, the state of the ideal world has the following
+functionalities' states as a part of it: 1. the state of the simulator,
+$\simul$, 2. the state of the smart contract functionality, $\fsc$, and finally
+3. the state of the ledger $\gl^i$. In the real world, for each $\party \in
+\honest$, $\party$'s protocol state, which we refer to as $\phi_\party$, is part
+of the state, along with the (shared) NIZK hybrid functionality $\fnizkr$, and
+the real-world ledger $\gl^r$. For convenience, we will often talk about these
+states as concrete variables, and not random variables.
+
+We will prove inductively that any action the environment takes will do two
+things: First, it will preserve an invariant $\boldsymbol I$, which holds after
+the state of both worlds at any point during the two experiments. Second, if the
+invariant holds, the environment gains at most negligible advantage in
+distinguishing from its next action. To begin, we will specify the simulator,
+the invariant $\boldsymbol I$, followed by a few lemmas helpful in the proof.
+Finally, we will perform the induction itself.
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:

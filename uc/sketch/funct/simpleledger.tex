@@ -1,0 +1,27 @@
+\begin{functionalitysketch}{$\gsimpleledger$}
+    The simplified interface to $\gledger$ is strictly less powerful than
+    actual ledger implementations, allowing reasoning about a less complex
+    ledger functionality.
+
+    \vspace{1em}
+    \noindent\emph{Adversarial influence:}
+
+    We allow the adversary to append arbitrarily to a canonical ledger state
+    (initialized to $\epsilon$). We further allow it to set each party's view of
+    the ledger, provided it is a prefix of the canonical ledger state, and an
+    extension of the previous view this party had.
+
+    \vspace{1em}
+    \noindent\emph{Honest interaction:}
+
+    We allow parties to \textsc{submit} transactions. This does nothing
+    notifying the adversary of $\tx$. While the adversary has no obligation to
+    every put transactions on the ledger, in interesting protocol executions it
+    usually does. Further, we allow parties to $\textsc{read}$ their own view
+    of the ledger state.
+\end{functionalitysketch}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../../../main"
+%%% End:

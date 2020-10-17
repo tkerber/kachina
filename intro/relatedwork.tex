@@ -1,0 +1,103 @@
+\subsection{Related Work}
+\label{sec:relatedwork}
+
+There has been an increasing amount of research into smart contracts and their
+privacy over the past few years. The results of these often focus on specific
+use-cases or trust assumptions. We briefly discuss the most notable of
+these.
+
+\paragraph{Ethereum}
+
+As the first practically deployed smart contract system,
+Ethereum~\cite{ethereum} is the basis of a lot of our expectations and
+assumptions about smart contracts. Ethereum is not designed for privacy, and
+hides no data by itself. We assume that the reader is familiar with Ethereum.
+
+\paragraph{Zexe}
+
+Zerocash~\cite{SP:BCGGMT14} is a well-known privacy-preserving payment system,
+allowing direct private payments on a public ledger. Zexe~\cite{zexe} extends
+its expressiveness by allowing arbitrary scripts, reminiscent of
+Bitcoin-scripts, to be evaluated in zero-knowledge in order to spend coin
+outputs.
+It is a major improvement in expressiveness over Zerocash, which only permits a
+few types of transactions.
+
+\paragraph{zkay}
+
+zkay~\cite{CCS:SBGMTV19} extends Ethereum smart-contracts with types for private
+data. It allows users to share encrypted data on-chain, and prove that data is
+correctly encrypted and correctly used in subsequent interactions. These proofs
+are managed through the ZoKrates~\cite{zokrates} framework, which compiles
+Ethereum contracts into NIZK-friendly circuits. Its usage is limited to
+fixed size pieces of private data.
+
+\paragraph{Hawk}
+
+One of the earliest works on privacy in smart contracts, Hawk~\cite{SP:KMSWP16}
+is also one of the most general. It describes how to compile private variants
+of smart contracts, given that all participants of the contract trust the same
+party with its privacy. This party, the ``manager'', can break the contract's
+privacy guarantees if they are corrupt, however they cannot break the correctness of the
+contract's rules. The construction used in Hawk for the manager party relies of
+zero-knowledge proofs of correct contract execution.
+
+\paragraph{Zether}
+
+\sloppy
+A lot of work on privacy in smart contracts has focused on retro-fitting privacy
+into existing systems. Zether~\cite{zether}, for instance, constructs a
+privacy-preserving currency within Ethereum, which can be utilized for a number
+of more private applications, such as hidden auctions. As with most retro-fitted
+systems, Zether is constrained by the system it is built for, and does not
+generalize to many applications.
+
+\fussy
+
+\paragraph{Enigma}
+
+There are two forms of Enigma: A paper discussing running secure multi-party
+computation for smart contracts~\cite{enigmapaper}, and a system of the same
+name designed to use Intel's SGX enclave to guarantee
+privacy~\cite{enigmawebsite}. The former has a lot of potential advantages, but
+is severely limited by the efficiency of general-purpose MPC protocols. The
+latter is a practical construction, and can claim much better performance than
+any cryptography-based protocol. The most obvious drawbacks are the reliance on
+an external trust assumption, and the poor track record of secure enclaves
+against side-channel attacks~\cite{foreshadow}.
+
+\paragraph{Arbitrum}
+
+Using a committee-based approach, Arbitrum~\cite{USENIX:KGCWF18} describes how
+to perform and agree on off-chain executions of smart contracts. A committee of
+managers is charged with execution, and, in the optimistic case, simply posts
+commitments to state updates on-chain. In the case of a dispute, an on-chain
+protocol can resolve the dispute with a complexity logarithmic in the number of
+computation steps taken. Arbitrum provides correctness guarantees even in the
+case of a $n-1$ out of $n$ corrupt committee, however relies on a fully honest
+committee for privacy.
+
+\paragraph{State channels}
+
+State channels, such as those discussed in~\cite{CCS:DziFauHos18}, occupy a
+similar space to Arbitrum, due to their reliance on off-chain computation and
+on-chain dispute resolution. The dispute resolution process is different, more
+aggressively terminating the channel, and typically it considers only
+participants on the channel that interact with each other. The privacy given is
+almost co-incidental, due to the interaction being local and off-chain in the
+optimistic case.
+
+\paragraph{Piperine}
+
+Piperine~\cite{piperine} uses a similar model and approach as presented in this
+paper, relying on zero-knowledge proofs of correct state transitions, and
+modeling smart contracts as replicated state machines. Piperine focuses on
+efficiency gains from this approach, rather than privacy gains, which it does
+not capture, while our work does not account for the benefit of transaction
+batching. Our notion of state oracles can be seen as a generalization of the
+state interactions presented in \cite{piperine}.
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:

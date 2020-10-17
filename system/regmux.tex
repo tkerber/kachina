@@ -1,0 +1,60 @@
+\subsection{Multiplexing With Registration}
+\label{sec:regmux}
+
+To allow registering new contracts in the multiplexer, it is possible to include
+the full contract's description as part of its \emph{address} $A$. In practice
+it may make more sense to maintain a mapping from addresses to contract code,
+however this is not required. The only other large changes is
+that, since contracts are created on the fly, we cannot rely on their states to
+have been initialized at any point. Therefore, this initialization takes place
+at any point where the multiplexed state is accessed.
+
+\begin{algorithmic}
+  \Function{$\vn{forceInitMaps}$}{$((M_1, \ldots, M_n), k, v)$}
+    \For{$i \in \set{1, \ldots, n}$}
+      \If{$k \notin M_i$}
+        \Let $M_i(k) \gets v$
+      \EndIf
+    \EndFor
+    \State \Return $(M_1, \ldots, M_n)$
+  \EndFunction
+\end{algorithmic}
+
+\subimport*{../uc/tnsfn/}{regmux}
+
+\sloppy
+We assume the existence of $\vn{unmuxPubOracle}$ and $\vn{unmuxPrivOracle}$,
+which take an oracle transcript to an Oracle produced by a multiplexed oracle,
+and return the pair $(A, \transcript')$, where $A = (i, \tnsfnkachina, \vn{desc},
+\vn{dep})$ is the address used in the original multiplexing, and $\transcript'$
+is the equivalent un-multiplexed transcript.
+
+\fussy
+\begin{algorithmic}
+  \Function{$\vn{unmuxZ}_{\vn{regmux}}$}{$(\sigma^o, \rho^o, \sigma^\pi, \rho^\pi, \eta), A$}
+    \SplitState{\Let $(\sigma^o.\Sigma, \rho^o.\Rho, \sigma^\pi.\Sigma,
+      \rho^\pi.\Rho) \gets \vn{forceInitMaps}($\splitstatebreak$(\sigma^o.\Sigma,
+      \rho^o.\Rho, \sigma^\pi.\Sigma, \rho^\pi.\Rho), A, \varnothing)$}
+    \State \Return $(\sigma^o.\Sigma(A), \rho^o.\Rho(A), \sigma^\pi.\Sigma(A),
+      \rho^\pi.\Rho(A), \eta)$
+  \EndFunction
+\end{algorithmic}
+\begin{algorithmic}
+  \Function{$\vn{unmuxX}_{\vn{regmux}}$}{$X, A$}
+    \State \Let $X' \gets \epsilon$
+    \For{$(u, \transcript, z, D) \loopin X$}
+      \If{$\exists \transcript' : \vn{unmuxPrivOracle}(\transcript) = (A, \transcript')$}
+        \State \Let $X' \gets X' \concat (u, \transcript',
+          \vn{unmuxZ}_{\vn{regmux}}(z, A), D)$
+      \EndIf
+    \EndFor
+    \State \Return $X'$
+  \EndFunction
+\end{algorithmic}
+\subimport*{../uc/desc/}{regmux}
+\subimport*{../uc/deps/}{regmux}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:

@@ -1,0 +1,84 @@
+\begin{transitionfn}{$\tnsfnkachina_{\mathsf{sp}}$}
+  The state transition function for a simple payments system. Parties have
+  associated public/private keys, and balances. The payments system allows for
+  parties without a key pair to generate one, and for parties to transfer and
+  mint coins, as well as query their own balance.
+
+  \begin{pubstatedecl}
+    \statevar{B}{\lambda \pk : 0}{Mapping of public keys to their
+      spendable coins}
+  \end{pubstatedecl}
+  \begin{privstatedecl}
+    \statevar{\vn{sk}}{\varnothing}{The party's secret key}
+  \end{privstatedecl}
+
+  \begin{receiveinput}{init}{}
+    \mkpriv
+    \State \SendAndReceive{init}{}{\oracle_\rho}{\mknorm\sk\mkpriv}
+    \mknorm
+    \State \Let $\pk \gets \prf_{\sk}^{\mathsf{pk}}(1)$
+    \State \Return $\pk$
+  \end{receiveinput}
+
+  \begin{receiveinput}{send}{\vn{recv}, v}
+    \mkpriv
+    \State \SendAndReceive{secretKey}{}{\oracle_\rho}{\mknorm\sk\mkpriv}
+    \mknorm
+    \State \Let $\pk \gets \prf_{\sk}^{\mathsf{pk}}(1)$
+    \mkpub
+    \State \Send{send}{\mknorm\pk\mkpub, \mknorm\vn{recv}\mkpub, \mknorm v\mkpub}{\oracle_\sigma}
+    \mknorm
+    \State \Return $\pk$
+  \end{receiveinput}
+
+  \begin{receiveinput}{system-send}{\vn{snd}, \vn{recv}, v}
+    \mkpub
+    \State \Send{send}{\mknorm\vn{snd}\mkpub, \mknorm\vn{recv}\mkpub, \mknorm v\mkpub}{\oracle_\sigma}
+    \mknorm
+  \end{receiveinput}
+
+  \begin{receiveinput}{mint}{v}
+    \mkpriv
+    \State \SendAndReceive{secretKey}{}{\oracle_\rho}{\mknorm\sk\mkpriv}
+    \mknorm
+    \State \Let $\pk \gets \prf_{\sk}^{\mathsf{pk}}(1)$
+    \mkpub
+    \State \Send{mint}{\mknorm\pk\mkpub, \mknorm v\mkpub}{\oracle_\sigma}
+    \mknorm
+  \end{receiveinput}
+
+  \begin{receiveinput}{balance}{}
+    \mkpriv
+    \State \Send{balance}{}{\oracle_\rho}
+    \mknorm
+  \end{receiveinput}
+  \vsep
+  \mkpriv
+  \begin{receivequery}{private}{init}{}
+    \State \Assert $\rho^\pi.\vn{sk} = \varnothing$
+    \State \Let $\rho.\vn{sk} \samples \set{0, 1}^\secparam$
+    \State \Return $\rho.\vn{sk}$
+  \end{receivequery}
+  \begin{receivequery}{private}{secretKey}{}
+    \State \Return $\rho.\vn{sk}$
+  \end{receivequery}
+  \begin{receivequery}{private}{balance}{}
+    \State \Return $\sigma^\pi.B(\prf_{\rho^\pi.\vn{sk}}^{\mathsf{pk}}(1))$
+  \end{receivequery}
+  \mknorm
+  \vsep
+  \mkpub
+  \begin{receivequery}{public}{send}{\pk, \vn{recv}, v}
+    \State \Assert $\sigma.B(\pk) \ge v$
+    \State \Let $\sigma.B(\pk) \gets \sigma.B(\pk) - v$
+    \State \Let $\sigma.B(\vn{recv}) \gets \sigma.B(\vn{recv}) + v$
+  \end{receivequery}
+  \begin{receivequery}{public}{mint}{\pk, v}
+    \State \Let $\sigma.B(\pk) \gets \sigma.B(\pk) + v$
+  \end{receivequery}
+  \mknorm
+\end{transitionfn}
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../../main"
+%%% End:

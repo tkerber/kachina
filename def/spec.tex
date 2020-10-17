@@ -1,0 +1,20 @@
+\subsection{UC Specification}
+\label{sec:fsc}
+
+The \emph{ideal smart contract functionality} $\fsc$ captures the
+notion of a contract as a leaky state machine whose inputs are drawn
+from a ledger. It is parameterized by the transition function $\tnsfn$
+and the leakage function $\lkgfn$, and it operates in a hybrid world with a
+global ledger functionality $\gledger$. A candidate for such a ledger is
+$\gsimpleledger$, as \iffull introduced in
+\autoref{app:ledgers}\else provided in \cite[Appendix~B]{fullversion}\fi, although any
+compatible functionality is sufficient. Its privacy guarantees stem from
+only revealing explicitly leaked data, i.e. $\vn{lkg}$, and only allowing the
+creator of a transaction to access the result.
+
+\import*{uc/sketch/funct/}{sc}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:

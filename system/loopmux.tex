@@ -1,0 +1,88 @@
+\subsection{Loopback Multiplexing}
+\label{sec:loopmux}
+
+Smart contract systems truly become interesting when contracts are allowed to
+\emph{call each other}. This is not a technically difficult operation: Contracts
+simply need to have an additional exit and entry point to allow new queries to
+other contracts to be made, and these queries to be responded to. Specifically,
+we require contracts to \emph{either} return $\msg{return}{y}$, \emph{or}
+$\msg{call}{A, M}$, with the latter invoking a separate contract. we associate a
+special return value structure with indicating a new contract address and input
+to call, and require contracts to process a specific $\msg{resume}{}$ message.
+
+As for the first time, it is possible for multiple separate contracts to get
+called, we domain-separate the randomness source $\eta$.
+
+\begin{algorithmic}
+  \Function{$\vn{unmuxZ}_{\vn{loopmux}}$}{$(\sigma^o, \rho^o, \sigma^\pi,
+      \rho^\pi, \eta), A$}
+    \SplitState{\Let $(\sigma^o.\Sigma, \rho^o.\Rho, \sigma^\pi.\Sigma,
+      \rho^\pi.\Rho) \gets \vn{forceInitMaps}($\splitstatebreak$(\sigma^o.\Sigma,
+      \rho^o.\Rho, \sigma^\pi.\Sigma, \rho^\pi.\Rho), A, \varnothing)$}
+    \SplitState{Let $\eta'$ be a randomness source determinstically and
+      collision-resistantally derived from the pair $(\eta, A)$.}
+    \State \Return $(\sigma^o.\Sigma(A), \rho^o.\Rho(A), \sigma^\pi.\Sigma(A),
+      \rho^\pi.\Rho(A), \eta')$
+  \EndFunction
+\end{algorithmic}
+
+\subimport*{../uc/tnsfn/}{loopmux}
+
+\sloppy
+Unlike before, we cannot invert the multiplexing on an entire transcript, as the
+transcript may consist of multiple, separate, sub-contract calls. Instead, we
+can invert multiplexing each query/response pair in the transcript itself. We
+assume the existence of $\vn{unmuxOracle}$, which take a query-response pair
+$(q, r)$, where the query is $\vn{muxPubOracle}(A, q')$ or
+$\vn{muxPrivOracle}(A, q')$, and maps it to $(A, (q', r))$.
+
+\fussy
+As far as descriptions go, it is crucial to note that the leakage description of
+a contract is no longer in isolation: what the contract may leak, depends on
+what this contract calls. We will assume instead that each sub-contracts leakage
+descriptor is aware that it is being run in a loopback system -- and therefore
+we give it the full transcripts, even of sub-contracts being called. The
+assumption here is that the contract directly called by the user is also trusted
+by this user -- the descriptor it gives should be trusted, not necessarily that
+of any further contracts it invoked. It is worth noting that this change of
+setting for the descriptor function does not preclude using contracts designed
+without loopback systems in mind: As this cannot invoke other contracts, their
+old descriptor function can be easily lifted to this setting (a slight caveat is that either the old descriptor needs to
+be capable of tolerating unconfirmed transaction transcripts over multiple calls
+to the underlying function, or there should exist a function which splits
+transcripts into these individual calls).
+
+\begin{algorithmic}
+  \Function{$\vn{liftDesc}$}{$A, \vn{desc}$}$(t, X, \transcript_\sigma, \transcript_\rho, w, z)$
+    \State \Let $\transcript_\sigma' \gets \vn{map}(\vn{proj}_2 \circ
+      \vn{unmuxOracle}, \transcript_\sigma)$
+    \State \Let $\transcript_\rho' \gets \vn{map}(\vn{proj}_2 \circ
+      \vn{unmuxOracle}, \transcript_\rho)$
+    \State \Let $X' \gets \vn{unmuxX}_{\vn{regmux}}(X, A); z' \gets
+      \vn{unmuxZ}_{\vn{regmux}}(z, A)$
+    \State \Return $\vn{desc}(t, X', \transcript_\sigma', \transcript_\rho', w, z')$
+  \EndFunction
+\end{algorithmic}
+\begin{algorithmic}
+  \Function{$\vn{unmuxT}$}{$\transcript, A$}
+    \SplitState{\Return $\vn{map}(\vn{proj}_2, \vn{filter}(\lambda(A', \cdot) : A =
+      A', $\splitstatebreak$\vn{map}(\vn{unmuxOracle}, \transcript)))$}
+  \EndFunction
+\end{algorithmic}
+\begin{algorithmic}
+  \Function{$\vn{unmuxX}_{\vn{loopmux}}$}{$X, A$}
+    \State \Let $X' \gets \epsilon$
+    \For{$(u, \transcript, z, D) \loopin X$}
+      \State \Let $\transcript' \gets \vn{unmuxT}(\transcript, A); z' \gets \vn{unmuxZ}_{\vn{loopmux}}(z, A)$
+      \State \Let $X' \gets X' \concat (u, \transcript', z', D')$
+    \EndFor
+    \State \Return $X'$
+  \EndFunction
+\end{algorithmic}
+\subimport*{../uc/desc/}{loopmux}
+\subimport*{../uc/deps/}{loopmux}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:

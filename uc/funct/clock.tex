@@ -1,0 +1,29 @@
+\begin{functionality}{$\gclock$}
+    The global clock allows parties to agree on some discrete notion of time.
+    \begin{statedecl}
+        \statevar{t}{0}{Current time}
+        \statevar{T}{\varnothing}{Timekeepers}
+        \statevar{A}{\varnothing}{Agreements to advance}
+    \end{statedecl}
+    \begin{receive}{register}{}
+        \State \Let $T \gets T \cup \set{\party}$
+    \end{receive}
+    \begin{receive}{deregister}{}
+        \State \Let $T \gets T \setminus \set{\party}$
+    \end{receive}
+    \begin{receive}{update}{}
+        \State \Let $A(\party) \gets \top$
+        \If{$\forall \party \in T . A(t)$}
+          \State \Let $t \gets t + 1; A \gets \lambda \party . \bot$
+          \State \QueryAdv{tick-tock}{}
+        \EndIf
+    \end{receive}
+    \begin{receive}{read}{}
+        \State \Return $t$
+    \end{receive}
+\end{functionality}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../../main"
+%%% End:

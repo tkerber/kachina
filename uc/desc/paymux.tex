@@ -1,0 +1,21 @@
+\begin{algorithmic}
+  \Function{$\vn{desc}_{\vn{paymux}}$}{$t, X, \transcript_\sigma,
+      \transcript_\rho, M, z$}
+    \If{$\exists w : M = \msg{token}{w}$}
+      \SplitState{\Return ``Calling token contract:''$+ \vn{desc}_{\vn{sp}}(t,
+        X,\allowbreak
+        \vn{map}(\vn{proj}_2 \circ \vn{unmuxOracle}, \transcript_\sigma),\allowbreak
+        \vn{map}(\vn{proj}_2 \circ \vn{unmuxOracle}, \transcript_\rho), w, z)$}
+    \ElsIf{$\exists v, A = (\cdot, \cdot, \vn{desc}, \cdot), w : M =
+        \msg{call}{v, A, w}$}
+      \SplitState{\Return ``Calling sub-contract $A$ with pay-in $v$: ''$+ \vn{desc}(t, X,
+        \transcript_\sigma, \transcript_\rho, (\bot, v, w), z)$}
+    \Else
+      ~\Return $\bot$
+    \EndIf
+  \EndFunction
+\end{algorithmic}
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../../main"
+%%% End:

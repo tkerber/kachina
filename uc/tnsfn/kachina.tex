@@ -1,0 +1,52 @@
+\begin{transitionfn}{$\tnsfnmainkachina(\tnsfnkachina)$}
+  The \kachina\ transition function, running an internal transition
+  function $\tnsfnkachina$ with oracle access to the public contract state, and the
+  private state of the party making the query. The query has an associated
+  context $z$, which the private state oracle may access, and an associated
+  public state transcript $\transcript_\sigma$, which must be consistent with
+  the current public state in order for the query to run successfully.
+
+  \vsep
+  
+  \begin{receiveinput*}{$((\sigma, \boldsymbol\rho), \party, w,
+      (\transcript_\sigma, z), \cdot)$}
+    \If{$\transcript_\sigma(\sigma) = \bot$}
+      \Return $(\bot, \bot, \bot)$
+    \EndIf
+    \State \Let $(\partstate{\sigma}, \transcript_\sigma', \partstate{\rho}, \cdot, \partresults) \gets
+      \runtnsfn(\sigma, \boldsymbol\rho[\party], w, z, \party \in \honest)$
+    \State \Let $\sigma' \gets \sigma; y \gets \bot; C \gets \top$
+    \State \Let $\splittranscript \gets
+      \vn{split}(\transcript_\sigma, \msg{commit}{}); \splittranscript' \gets
+      \vn{split}(\transcript_\sigma, \msg{commit}{})$
+    \For{$(\transcript_i, \transcript_c, \sigma', \rho', y') \loopin \vn{zip}(\splittranscript,
+      \splittranscript', \partstate{\sigma},
+        \partstate{\rho}, \partresults)$}
+      \If{$\sigma' = \bot \lor \rho' = \bot \lor \transcript_r \neq \transcript_c$}
+        \State \Let $C \gets \bot$
+        \State \Break
+      \EndIf
+      \State \Let $\sigma \gets \sigma'; \boldsymbol\rho[\party] \gets \rho'; y
+        \gets y'$
+    \EndFor
+    \State \Return $((\sigma, \boldsymbol\rho), C, y)$
+  \end{receiveinput*}
+
+  \begin{helpers}
+    \Function{$\runtnsfn$}{$\sigma, \rho, w, z, h$}
+      \State $\oracle_\sigma \gets \utm(\sigma, \varnothing); \oracle_\rho \gets
+        \utm(\rho, z)$
+      \If{$\lnot h$}
+        \Let $\oracle_\rho \gets z$
+      \EndIf
+      \State $\partresults \gets \tnsfnkachina_{\oracle_\sigma,\oracle_\rho}(w)$
+      \State $(\partstate{\sigma}, \transcript_\sigma) \gets \vn{state}(\oracle_\sigma);
+      (\partstate{\rho}, \transcript_\rho) \gets \vn{state}(\oracle_\rho)$
+      \State \Return $(\partstate{\sigma}, \transcript_\sigma, \partstate{\rho}, \transcript_\rho, \partresults)$
+    \EndFunction
+  \end{helpers}
+\end{transitionfn}
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../../main"
+%%% End:

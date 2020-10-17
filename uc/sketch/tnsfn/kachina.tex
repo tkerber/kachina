@@ -1,0 +1,36 @@
+\begin{transitionfnsketch}{$\tnsfnmainkachina(\tnsfnkachina)$}
+  \vspace{-1em}
+  \begin{receiveinput*}{$((\sigma, \boldsymbol\rho), \party, w,
+      (\transcript_\sigma, z), \cdot)$}
+    \If{$\transcript_\sigma(\sigma) = \bot$}
+      \Return $(\bot, \bot, \bot)$
+    \EndIf
+    \State \Let $(\partstate{\sigma}, \transcript_\sigma', \partstate{\rho}, \cdot, \partresults) \gets
+      \runtnsfn(\sigma, \boldsymbol\rho[\party], w, z, \party \in \honest)$
+      \State \Let $\sigma' \gets \sigma; y \gets \bot; C \gets \top$
+      \State \Let $\splittranscript \gets
+        \vn{split}(\transcript_\sigma, \msg{commit}{}); \splittranscript' \gets
+        \vn{split}(\transcript_\sigma, \msg{commit}{})$
+    \For{$(\transcript_i, \transcript_c, \sigma', \rho', y') \loopin \vn{zip}(\splittranscript,
+      \splittranscript', \partstate{\sigma},
+        \partstate{\rho}, \partresults)$}
+      \If{$\sigma' = \bot \lor \rho' = \bot \lor \transcript_r \neq \transcript_c$}
+        \State \Let $C \gets \bot$
+        \State \Break
+      \EndIf
+      \State \Let $\sigma \gets \sigma'; \boldsymbol\rho[\party] \gets \rho'; y
+        \gets y'$
+    \EndFor
+    \State \Return $((\sigma, \boldsymbol\rho), C, y)$
+  \end{receiveinput*}
+
+  \noindent Where $\runtnsfn(\sigma, \rho, w, z, \cdot)$ runs
+  $\tnsfnkachina_{\oracle_\sigma, \oracle_\rho}(w)$, and returns $(\partstate{\sigma},\allowbreak
+  \transcript_\sigma,\allowbreak \partstate{\rho}, \transcript_\rho, \partresults)$ (see
+  \iffull\autoref{sec:fullfuncts}\else\cite[Appendix~C]{fullversion}\fi\ for a full specification).
+\end{transitionfnsketch}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../../../main"
+%%% End:

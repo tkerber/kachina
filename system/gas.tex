@@ -1,0 +1,89 @@
+\subsection{Fees and Cost Models}
+\label{sec:fees}
+
+In order to prevent denial-of-service attacks, the computations performed by the
+network in verifying a transaction must be paid for in some way. In public
+currencies, there is typically a \emph{cost model}, which maps each step of
+computation to a cost, often referred to as \emph{gas}. Each transaction declares
+a limit on how much gas it is willing to pay, and what each unit's value should
+be. It then pays the corresponding amount into a fees pool, and while executing
+the transaction, the gas usage is counted. If the limit is reached, the
+transaction is rejected, otherwise any spare gas is refunded.
+
+We do not explicitly specify how miners are awarded these fees -- a simple
+  approach is to not enable withdrawals from the fee pot within the transition
+  function, relying on miners to do so themselves, and not include in their
+  block other transactions which take from the pot.
+
+In \kachina\ the computation done in public state oracles occupies a
+  similar space: A modeling of fees must include estimating their likely cost,
+  pay this estimation in advance, and then use up the gas during the actual
+  oracle execution. In addition to this, the NIZK proof verification must be
+  paid for. We will assume that this has a flat cost, dependant on the size of
+  its inputs, i.e. the size of the transcript.
+
+  Specifically, we assume two cost models: $\tnsfncostmodel$, and
+  $\oraclecostmodel$, as well as a cost estimator $\oraclecostmodelest$.
+  $\tnsfncostmodel$ is simply a function from a public state transcript to the gas
+  cost of verifying a NIZK proof against it. A transaction will publicly declare
+  what it believes the cost of its transcript is, and will use
+  $\oraclecostmodelest$ (as well as a user input dictating the cost per unit of
+  gas) to estimate the cost of the remaining transaction. The transaction
+  declares this total fee, which part of the fee is for the NIZK verification,
+  and what the cost per unit of gas is. Transactions which pay too little for
+  NIZK verification, or set the cost per unit of gas too low, may not be
+  picked up by miners, although modeling miner incentives is not within the
+  scope of this paper.
+
+  Formally, $g \gets \tnsfncostmodel(\transcript)$ is a function from a public
+  state transcript to a gas cost, $(\sigma', g', y) \lor \bot \gets
+  \oraclecostmodel(q, \sigma, g)$ is a function taking an oracle query, initial
+  state, and gas limit, and either returning the result and remaining gas, or
+  returning $\bot$ if the supplied gas ran out. Finally, $(\sigma', g', y) \gets
+  \oraclecostmodelest(q, \sigma)$ returns an estimate as to the gas cost of
+  running a query $q$, with the state $\sigma$ as a reference point.
+  $\oraclecostmodelest$ and $\oraclecostmodel$ should return $(\sigma', y) =
+  q(\sigma)$ if they succeed.
+
+  In attaching fees to our contract system, we operate as follows:
+  \begin{enumerate}
+    \item In the private state oracle, simulate the transaction creation
+      process, constructing the public state transcript $\transcript$, and for each public
+      state interaction, recording the estimated cost, totalling to the overall
+      gas cost $g$.
+    \item For a given gas price $\vn{gasPrice}$, make two separate, public
+      transfers into the fee pot: first $\tnsfncostmodel(\transcript) \times
+      \vn{gasPrice}$, and second $g \times \vn{gasPrice}$
+    \item Commit this as a partial execution success.
+    \item Execute the transaction as normal, except making public state oracle
+      queries through a modified gas cost oracle instead, retains a temporary
+      state of the remaining gas.
+    \item Finally, the public state oracle relinquishes the remaining gas, and
+      returns it to the transaction creator.
+  \end{enumerate}
+
+It is worth noting that this is not entirely on par with existing fee models in
+smart contract systems, due to one key issue: A failed transaction in \kachina\
+has no effect by definition. This also means that no miner can be awarded gas
+fees for a failed transaction, as the fee payment is itself an effect of the
+transaction. There are a few ways this could be solved -- for instance
+introducing multiple failure states with different effects, or splitting
+transactions into linked fee-payment and contract call sub-transactions. For
+instance, each transaction could consist of both a contract call transaction as
+listed below, and a fee-payment transaction of the same value, with the
+consensus rules ensuring the former is placed in the ledger iff the gas cost is
+sufficient, and the latter otherwise. We do not construct these here, but
+observe that in a practical system the payment of fees will require a special
+status to combat denial of service attacks.
+
+We now give an example transition function that combines this gas model with the
+integrated payment system of \autoref{sec:payments}.
+
+\subimport*{../uc/tnsfn/}{scs}
+\subimport*{../uc/desc/}{scs}
+\subimport*{../uc/deps/}{scs}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:

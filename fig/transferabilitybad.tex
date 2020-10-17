@@ -1,0 +1,35 @@
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[x=1cm,y=.7cm]
+  \node (init) at (-2, 2) {$\varnothing$};
+  \node (sold) at (0, 2) {$\sigma^o$};
+  \node (sprj) at (0, 4) {$\sigma^\pi$};
+  \node (snew) at (2, 4) {$\sigma^n$};
+  \node (sprj2) at (2, 3) {$\sigma^\pi$};
+  \node (sprjprime) at (4, 3) {$\sigma^n$};
+  \node (s1) at (2, 2) {$\sigma_1$};
+  \node (s1p) at (4, 2) {\Large\ding{55}};
+  \node (s2) at (2, 1) {$\sigma_2$};
+  \node (s2p) at (4, 1) {\Large\ding{55}};
+  \draw[->] (init) -- node[pos=.5,fill=white,anchor=center,sloped] {$\cdots$} (sold);
+  \draw[->,dashed] (sprj) -- node[above] {$\scriptstyle\sigma^\pi \mapsto \sigma^n$} (snew);
+  \draw[->] (sprj2) -- node[above] {$\scriptstyle\sigma^\pi \mapsto \sigma^n$} (sprjprime);
+  \draw[->] (s1) -- node[above] {$\scriptstyle\sigma^\pi \mapsto \sigma^n$} (s1p);
+  \draw[->] (s2) -- node[above] {$\scriptstyle\sigma^\pi \mapsto \sigma^n$} (s2p);
+  \draw[->,dashed] (sold) -- node[pos=.5,fill=white,anchor=center,sloped] {$\cdots$} (sprj);
+  \draw[->] (sold) -- node[pos=.5,fill=white,anchor=center,sloped] {$\cdots$} (sprj2);
+  \draw[->] (sold) -- node[pos=.5,fill=white,anchor=center,sloped] {$\cdots$} (s1);
+  \draw[->] (sold) -- node[pos=.5,fill=white,anchor=center,sloped] {$\cdots$} (s2);
+  \draw[dashed] ($(sprj.north west)+(-0.15,0.15)$) rectangle ($(snew.south east)+(0.15,-.15)$);
+  \node at ($(sprj)!0.5!(snew)+(0,.8)$) {\scriptsize Transaction creation};
+  \node[anchor=center,rotate=-90] at (4.5,2.5) {\scriptsize Transaction application(s)};
+\end{tikzpicture}
+\caption{Direct state-transition based transactions can be applied only in the
+state $\sigma^\pi$ they were proven for.}
+\label{fig:transferabilitybad}
+\end{figure}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:

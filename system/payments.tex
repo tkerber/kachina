@@ -1,0 +1,36 @@
+\subsection{Integrated Payments Systems}
+\label{sec:payments}
+
+Smart contract systems typically have an associated, native ``asset'', which can
+be traded not only by users, but by contracts as well. This asset is further
+typically tied to a public key, which can be used as an identity of end users,
+providing a means to authenticate to contracts. We demonstrate a simple means of
+achieving this: We construct a ``simple payments'' contract, which allows
+payments by end users through demonstrating knowledge of secret keys, and
+arbitrary payments which will be restricted to system usage. It is worth noting
+that this \emph{could} be done in a privacy-preserving means, as presented in
+\autoref{app:privatepayments}, although significant changes would have to be
+made, as there would be situations where a contract should publicly own funds,
+and be able to transfer them, and the simplified single-denomination design is
+not ideal.
+
+\subimport*{../uc/tnsfn/}{simplepayments}
+
+\subimport*{../uc/desc/}{simplepayments}
+\subimport*{../uc/deps/}{simplepayments}
+
+Once given such a payments system, the multiplexing system can ensure that for
+each call, a transfer to the called contract is initiated \emph{first}, with the
+value of the transfer, and the source address being passed into the contract
+being called. Likewise, if this calls another contract, this call may transfer
+funds from one contract to another.
+
+\subimport*{../uc/tnsfn/}{paymux}
+
+\subimport*{../uc/desc/}{paymux}
+\subimport*{../uc/deps/}{paymux}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:

@@ -1,0 +1,40 @@
+\begin{functionality}{$\fnizk$}
+    The (non-malleable) non-interactive zero-knowledge functionality
+    $\fnizk$ allows proving of statements in an NP language $\lang$.
+    \begin{statedecl}
+        \statevar{W}{\varnothing}{Mapping of statement/proof pairs to witnesses}
+        \statevar{\proofs}{\varnothing}{Set of statement/proof pairs}
+        \statevar{\disproofs}{\varnothing}{Set of known invalid statement/proof pairs}
+    \end{statedecl}
+    \begin{receive}{prove}{x, w}
+        \If{$(x, w) \notin \lang$}
+            \State \Return $\bot$
+        \EndIf
+        \SplitState{\QueryAdv[\nizkproof][\nizkproof \neq \bot \land (x, \nizkproof)
+          \notin \disproofs \land (\cdot, \nizkproof) \notin
+          \proofs][\bit^\secparam]{prove}{x}}
+        \State \Let $\proofs \gets \proofs \cup \{(x, \nizkproof)\}; W(x,
+          \nizkproof) \gets w$
+        \State \Return $\nizkproof$
+    \end{receive}
+    \begin{receive}{verify}{x, \nizkproof}
+        \If{$(x, \nizkproof) \notin \proofs \cup \disproofs \land
+          \nizkproof \neq \bot$}
+            \State \QueryAdv[R][][\set{\bot}]{verify}{x, \nizkproof}
+            \If{$(x, \nizkproof) \notin \proofs \cup \disproofs$}
+              \If{$\exists w . R = \msg{witness}{w} \land (x, w) \in \lang$}
+                \State \Let $\proofs \gets \proofs \cup (x, \nizkproof); W(x,
+                  \nizkproof) \gets w$
+              \Else
+                \State \Let $\disproofs \gets \disproofs \cup (x, \nizkproof)$
+              \EndIf
+            \EndIf
+        \EndIf
+        \State \Return $(x, \nizkproof) \in \proofs$
+    \end{receive}
+\end{functionality}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../../main"
+%%% End:

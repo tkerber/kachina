@@ -1,0 +1,187 @@
+\subsection{The Challenge of Dependencies}
+\label{sec:deps}
+
+If a transaction $\tx_1$ moves funds from Alice to Bob, and $\tx_2$ moves funds
+from Bob to Charlie, the order $\tx_2\ldots\tx_1$ may not be valid, if $\tx_2$
+relies on the funds Bob received from Alice. When a dependency like this is
+violated in interacting with the public state, attempting to apply the dependent
+transaction first will fail, and the transaction is rejected.
+
+How such interactions affect a user's private state is more tricky to handle.
+While two different parties cannot conflict with each other on private state
+changes due to domain separation, parties may encounter \emph{internal}
+dependencies.
+
+A party starting with the private state $\rho_1$, makes a transaction $\tx_1$
+which advances their private state to $\rho_2$. Afterwards, they make the
+transaction $\tx_2$, their private state ending up as $\rho_3$. If these
+transactions are made shortly after each other, $\tx_2$ may be placed before
+$\tx_1$ on the ledger. It is possible that $\tx_2$ uses information from
+$\tx_1$, such as a secret key, and that it makes no sense without it.
+
+Should a user ignore the reordering, and stick with the state $\rho_3$? This
+can introduce inconsistencies between the public state and private state. Should
+the user apply the private state transcript of $\tx_2$ and hope for the best --
+but risk a catastrophic failure if it cannot be applied? Neither are ideal.
+Instead, we propose that $\tx_2$ should publicly declare that it depends on
+$\tx_1$, and rely on on-chain validation to ensure they are applied in the
+correct order.
+
+If a user has a set of unconfirmed transactions $U$, and is adding the new
+transaction $\tx$ in the ledger state, dependencies should ensure
+that any permutation of $U \cup \set{\tx}$ results in a consistent interaction
+with the user's private state -- i.e. result in a non-$\bot$ private state.
+Further, this should even be the case if these transactions are only partially
+  successful -- regardless as to which $\msg{commit}{}$ point was reached.
+
+An overeager approach would be to ensure all unconfirmed transactions are
+dependencies, and in the order that they were made. With domain separation and
+sufficiently abstract interactions it is likely that only few transactions
+actually depend on each other. This can be application specific, and to account
+for this we allow for contracts to specify a function $\vn{dep}$ to declare
+dependencies. We constrain how this function may behave, and provide the
+all-purpose fallback of all unconfirmed transactions.
+
+For most practical cases that we have observed, private state oracles do
+  not conflict or enter into complex dependencies with each other. Most often,
+  their state management is simple: sampling and storing secrets.
+  The formal machinery presented in this section is to allow this intuition that
+the transactions do not depend on each other to be justified in many cases.
+
+\paragraph{Formal definition}
+The formal definition of dependency functions is complex; we begin by
+introducing some mathematical notations. In addition to this notation, we
+  make use of the following functions: a) the higher-order function $\vn{map}$.
+  b) an index function, which returns the index of an element in a list,
+  $\vn{idx}$. c) the tuple projection functions $\vn{proj}_i$, which return
+  the $i$th element of a tuple. d) the list flattening function
+  $\vn{flatten}$, which, given a list of lists, returns a list of the inner
+  lists concatenated. e) the function $\vn{take}$, which returns the prefix of a
+  list containing a specified number of items. f) the function $\vn{zip}$, which
+  combines $n$ lists into a list of $n$-tuples.
+
+\begin{definition}
+  For any finite set $X$, $S_X$ is the set of all permutations of $X$, where each
+  permutation is a list.
+\end{definition}
+
+\begin{definition}
+  The \emph{subsequence relation} $X \sqsubseteq Y$ indicates that each element
+  of the list $X$ is present in $Y$, in the same order:
+  \begin{align*}
+    X \sqsubseteq Y \eqdef \;& X \subseteq Y \land 
+    (\forall a, b \in X : \vn{idx}(X, a) < \vn{idx}(X, b) \\ &\Longrightarrow
+    \vn{idx}(Y, a) < \vn{idx}(Y, b))
+  \end{align*}
+\end{definition}
+
+\noindent We define an expansion of transactions into useful components: As a
+transaction has no private data within it, we use this to refer to this data.
+
+\begin{definition}
+  A transcript $\transcript$'s corresponding \emph{commit-sep\-a\-rat\-ed} transcript
+  $\splittranscript$ is a list of lists of query/response pairs, corresponding
+  to splitting $\transcript$ at each $\msg{commit}{}$. We write
+  $\splittranscript = \vn{split}(\transcript, \msg{commit}{})$.
+\end{definition}
+
+\begin{definition}
+  A secret-expanded transaction is a tuple $(\tau, \splittranscript, z,\allowbreak D)$,
+  consisting of the transaction object $\tau$, the commit-separat\-ed private state transcript
+  $\splittranscript$, the context $z$, and the dependencies $D$.
+\end{definition}
+
+\noindent We define the format of transactions handled by the dependency
+function. We make use of ``confirmation depth'', the vector of which is denoted
+$\confirmations$. This is a vector of natural numbers, representing how many
+parts of the corresponding commit-separated transcript executed successfully.
+
+\begin{definition}
+  A list $X$ of secret-expanded transactions' dependencies may be
+  \emph{satisfied} given a set of still unconfirmed transaction $U$ and a
+    list of confirmation depths $\confirmations$, denoted by $\vn{sat}(X,
+  \confirmations, U)$, which is defined formally below. Informally, it
+  states that each transaction in $X$ must be preceeded by its dependencies, in
+  order, and that each of these dependencies should have executed fully, rather
+  than partially.
+  \begin{itemize}
+    \item $\vn{sat}(\epsilon, \confirmations, U) \eqdef \top$
+    \item \sloppy$\vn{sat}(X \concat (\cdot, \cdot, \cdot, D),
+      \confirmations \concat \cdot, U) \eqdef \vn{sat}(X, \confirmations, U) \land
+      (D \cap U) \sqsubseteq \allowbreak \vn{map}(\vn{proj}_1, X) \land \forall
+      d \in D, \splittranscript, z, D', i: (d, \splittranscript, z, D') =
+      X[i] \implies |\splittranscript| = \confirmations[i]$
+  \end{itemize}
+
+  We write $\vn{sat}^*(X, U)$ as a shorthand for the case where $\confirmations$ are
+  maximal: i.e. $\confirmations[i] = |\vn{proj}_2(X[i])|$.
+\end{definition}
+
+\fussy
+
+\noindent We define what transcripts will actually be executed for a given
+sequence of confirmation levels.
+
+\begin{definition}
+  The \emph{effective sequence of transcripts} (denoted $ES(X,
+  \confirmations)$), given a list of secret-expanded transactions and a list of
+  confirmation depths of equal length, is the sequence of confirmed transcript
+  parts, along with their contexts, defined as:
+
+  \noindent
+  $ES(X, \confirmations) \eqdef \vn{flatten}(\vn{map}(\lambda ((\cdot,
+  \splittranscript, z, \cdot), c) : \allowbreak\vn{map}(\lambda \transcript : \allowbreak(\transcript,
+  z),\allowbreak \vn{take}(\splittranscript, c)), \vn{zip}(X, \confirmations)))$
+  
+  We write $ES^*(X)$ as a shorthand for the case where $\confirmations$ are
+  maximal: i.e. $\vn{proj}_i(\confirmations) = |\vn{proj}_2(\vn{proj}_i(X))|$.
+\end{definition}
+
+\noindent We define the central invariant the dependencies must preserve:
+That the private state can always be advanced.
+
+\begin{definition}
+  \sloppy
+  \label{def:invdep}
+  The dependency invariant $J(X, \rho)$, given a set $X$ of secret-expanded
+  transactions, states that any permutation of a subset of $X$'s private state
+  transcripts which have their dependencies satisfied can be successfully applied to $\rho$.
+  $J(X, \rho) \eqdef \forall Y \subseteq X, Z \in S_Y, \confirmations : \vn{sat}(Z,\allowbreak
+  \confirmations, \vn{map}(\vn{proj}_1, X)) \implies
+  \transcript^*_{ES(Z, \confirmations)}(\rho) \neq \bot$
+\end{definition}
+
+\fussy
+\noindent Finally, we define the constraints on the dependency function.
+
+\begin{definition}
+  \label{def:dep}
+  A dependency function $\vn{dep}(X, \transcript, z)$ is a pure function taking
+  as inputs a set of secret-expanded unconfirmed transactions $X$, a new
+  private state transcript $\transcript$, and a new context $z$, returning a
+  list of transaction objects. It must satisfy the following conditions:
+  \begin{enumerate}
+    \item If called with non-honestly generated transcripts or contexts, no
+      constraints need to hold.
+    \item The result must be a subsequence of the transactions in $X$:
+      $\vn{dep}(X, \transcript, z) \sqsubseteq \vn{map}(\vn{proj}_1, X)$
+    \item When adding a new transaction $\tx$, with the corresponding\
+      private state transcript $\transcript$ (where its
+        commit-separated form is $\splittranscript$) and context $z$, the
+      dependency invariant $J$ is preserved: $\textbf{let }\allowbreak Y =
+      X\allowbreak \concat (\tx, \splittranscript,\allowbreak
+      z\allowbreak =\allowbreak (\cdot, \rho^o, \cdot, \cdot, \cdot),
+      \vn{dep}(X,\allowbreak \transcript,\allowbreak z)) \allowbreak\textbf{ in
+      }\allowbreak \transcript^*_{ES^*(Y)}(\rho^o)\allowbreak \neq \bot \land J(X, \rho^o)\allowbreak \implies
+      J(Y,\allowbreak \rho^o)$
+  \end{enumerate}
+\end{definition}
+
+The dependency function $\vn{dep}(X, \transcript, z) = \vn{map}(\vn{proj}_1, X)$
+can always be used, as it maximally constraints the possible permutations which
+satisfy dependencies.
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:

@@ -1,0 +1,29 @@
+\subsection{The Core \kachina\ Protocol}
+
+\sloppy
+The construction of the core protocol itself is now fairly straightforward. We use
+non-interactive zero-knowledge to prove statements about transition functions
+interacting with an oracle. When creating a transaction, users prove that the
+generated transcript is consistent with the transition function and initial
+input. Instead of evaluating transactions, users apply the public (and, if
+available, private) state transcripts associated with them. We sketch the
+protocol here, the full details can be found in \iffull\autoref{sec:fullfuncts}\else\cite[Appendix~C]{fullversion}\fi.
+
+Formally, the language $\lang$ of the NIZK used is defined as follows, for any
+given transition function $\tnsfnkachina$: $((\transcript_\sigma, \cdot), (w,
+\transcript_\rho)) \in \lang$ if and only if, where $\oracle_\sigma \gets
+\oracle(\transcript_\sigma)$, and $\oracle_\rho \gets
+\oracle(\transcript_\rho)$, $\vn{last}(\tnsfnkachina_{\oracle_\sigma,
+\oracle_\rho}(w)) \allowbreak\neq \bot$, and after it is run,
+$\vn{consumed}(\oracle_\sigma) \land\allowbreak \vn{consumed}(\oracle_\rho)$ holds. This is
+efficiently provable provided that $\transcript_\sigma$, $w$, and
+$\transcript_\rho$ are short, and $\tnsfnkachina$ itself is efficiently
+expressible in the underlying zero-knowledge system.
+
+\fussy
+\subimport*{../uc/sketch/proto/}{kachina}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:

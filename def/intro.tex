@@ -1,0 +1,15 @@
+Smart contracts are typically implemented as replicated state machines. If a
+\emph{replicated} state machine is the implementation, the natural model is that
+of the state machine itself. Inputs are drawn from a ledger of transactions, and
+passed to this state machine.
+
+This definition is unsuitable for privacy-preserving smart contracts: If the
+state machine's behavior is known, and its inputs are on a ledger, there is no
+privacy. A simple tweak can solve this: Inputs are replaced with identifiers on
+the ledger, with the smart contract functionality tracking what their
+corresponding inputs are.
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:

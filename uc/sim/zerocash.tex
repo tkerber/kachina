@@ -1,0 +1,155 @@
+\begin{simulator}{$\simul_{\mathsf{zc}}$}
+  The fully detailed Zerocash simulator.
+  
+  \begin{statedecl}
+    \statevar{B}{\varnothing}{Unspent adversarial coins.}
+    \statevar{K}{\varnothing}{Honest public/private key pairs.}
+    \statevar{T}{\varnothing}{Mapping of transactions to created
+      coin commitments.}
+  \end{statedecl}
+
+  \begin{receive}[{\fsc[\tnsfn_{\mathsf{pp}}, \lkgfn_{\mathsf{pp}}]}]{transaction}{x, D}
+    \If{$x = \msg{init}{}$}
+      \State \Let $\transcript_\sigma \gets \epsilon$
+      \SplitState{\QueryAdv[(\tx, \cdot)][T(\tx) = \bot \land \tx \neq \bot]
+        [(\set{0,1}^\secparam, \bot)][][break]{transaction}{\transcript_\sigma, D}}
+      \State \Let $(K_e, \pk_e) \gets \vn{keyGen}(1^\secparam)$
+      \State \Let $K_z \samples \set{0,1}^\secparam$
+      \State \Let $\pk_z \gets \prf_{K_z}^{\mathsf{pk}}(1)$
+      \State \Let $K \gets K \cup \set{((K_z, K_e), (\pk_z, \pk_e))}$
+      \State \Let $T(\tx) \gets \varnothing$
+      \State \Return $(\tx, (\pk_z, \pk_e))$
+    \ElsIf{$x = \msg{send}{\ell, (\pk_z, \pk_e)}$}
+      \State \Let $p \samples \set{0,1}^\secparam; r \samples \set{0,1}^\secparam$
+      \State \Let $\vn{sn} \samples
+        \prf_{\set{0,1}^\secparam}^{\mathsf{sn}}(\set{0,1}^\secparam \times
+        \set{0,1}^\secparam)$
+      \State \Let $\vn{rt} \gets \vn{root}(t)$
+      \State \Let $\cm \gets \vn{comm}_r(\pk_z, p)$
+      \State \Let $B \gets B \cup \set{(\pk_z, \pk_e, \cm)}$
+      \State \Let $M \gets \vn{enc}((r, p), \pk_e)$
+      \SplitState{\Let $\transcript_\sigma \gets (\msg{spend}{\vn{sn}, \vn{rt}},
+        \varnothing) \concat (\msg{msg}{M}, \varnothing) \;\concat$\splitstatebreak$ (\msg{mint}{\cm},
+        \varnothing)$}
+      \SplitState{\QueryAdv[(\tx, \cdot)][T(\tx) = \bot \land \tx \neq \bot]
+        [(\set{0,1}^\secparam, \bot)][][break]{transaction}{\transcript_\sigma, D}}
+      \State \Let $T(\tx) \gets \set{\cm}$
+      \State \Return $(\tx, \varnothing)$
+    \ElsIf{$x = \msg{send}{\ell}$}
+      \State \Let $(\cdot, \pk) \samples \vn{keyGen}(1^\secparam)$
+      \State \Let $\vn{rt} \gets \vn{root}(t)$
+      \State \Let $\cm \samples
+        \vn{comm}_{\set{0,1}^\secparam}(\prf_{\set{0,1}^\secparam}^{\mathsf{pk}}(1),
+        \set{0,1}^\secparam)$
+      \State \Let $\vn{sn} \samples
+        \prf_{\set{0,1}^\secparam}^{\mathsf{sn}}(\set{0,1}^\secparam \times
+        \set{0,1}^\secparam)$
+      \State \Let $M \samples \vn{enc}((\set{0,1}^\secparam,
+        \set{0,1}^\secparam), \pk)$
+      \SplitState{\Let $\transcript_\sigma \gets (\msg{spend}{\vn{sn}, \vn{rt}},
+        \varnothing) \concat (\msg{msg}{M}, \varnothing) \;\concat$\splitstatebreak$ (\msg{mint}{\cm},
+        \varnothing)$}
+      \SplitState{\QueryAdv[(\tx, \cdot)][T(\tx) = \bot \land \tx \neq \bot]
+        [(\set{0,1}^\secparam, \bot)][][break]{transaction}{\transcript_\sigma, D}}
+      \State \Let $T(\tx) \gets \set{\cm}$
+      \State \Return $(\tx, \varnothing)$
+    \ElsIf{$x = \msg{mint}{}$}
+      \State \Let $\cm \samples
+        \vn{comm}_{\set{0,1}^\secparam}(\prf_{\set{0,1}^\secparam}^{\mathsf{pk}}(1),
+        \set{0,1}^\secparam)$
+      \State \Let $\transcript_\sigma \gets (\msg{mint}{\cm}, \varnothing)$
+      \SplitState{\QueryAdv[(\tx, \cdot)][T(\tx) = \bot \land \tx \neq \bot]
+        [(\set{0,1}^\secparam, \bot)][][break]{transaction}{\transcript_\sigma, D}}
+      \State \Let $T(\tx) \gets \set{\cm}$
+      \State \Return $(\tx, \varnothing)$
+    \ElsIf{$x = \msg{balance}{}$}
+      \State \Let $\transcript_\sigma \gets \epsilon$
+      \SplitState{\QueryAdv[(\tx, \cdot)][T(\tx) = \bot \land \tx \neq \bot]
+        [(\set{0,1}^\secparam, \bot)][][break]{transaction}{\transcript_\sigma, D}}
+      \State \Return $(\tx, \varnothing)$
+    \Else
+      ~\Abort
+    \EndIf
+    \State \Return $(\tx, a')$
+  \end{receive}
+  \begin{receive}[{\fsc[\tnsfn_{\mathsf{pp}}, \lkgfn_{\mathsf{pp}}]}]{input}{\tx}
+    \SplitState{\SendAndReceive{input}{\tx}{\adversary}{(\party, w,
+      (\transcript_\sigma, \oracle_\rho), \cdot, D)}}
+    \If{$T(\tx) \neq \bot$}
+      \Return $\msg{none}{}$
+    \EndIf
+    \State \Let $T(\tx) \gets \varnothing$
+    \If{$w = \msg{send}{(\pk_z, \cdot)}$}
+      \SplitIf{$\transcript_\sigma = (\msg{spend}{\vn{sn},
+          \vn{rt}}, \varnothing) \concat (\msg{msg}{M}, \varnothing) \;\concat$\splitstatebreak
+          $(\msg{mint}{\cm'}, \varnothing)$}
+        \SplitState{\SendAndReceive{send}{\pk_e}{\oracle_\rho}{(p, r, K_z, p', r',
+          \vn{rt}', \vn{path}, M')}}
+        \State \Let $\cm \gets \vn{comm}_r((\prf_{K_z}^{\mathsf{pk}}, p))$
+        \State \Let $b \gets \top$
+        \State \SendAndReceive{read}{}{\gledger}{\ledgerstate}
+        \SplitIf{$\nexists t : 0 \leq t \leq |\ledgerstate| \land \vn{rt} =
+            \vn{root}(t) \;\land$\splitstatebreak$\exists \tx : (T(\tx) = \cm \land \tx \in
+            \ledgerstate[{:}t])$}
+          \State \Let $b \gets \bot$
+        \EndIf
+        \If{$\sn \neq \prf_{K_z}^{\mathsf{sn}}((p, r)) \lor\vn{rt} \neq
+            \vn{rt}' \lor M \neq M'$}
+          \State \Let $b \gets \bot$
+        \EndIf
+        \If{$\cm' \neq \comm_{r'}(\pk_z, p')$}
+          \Let $b \gets \bot$
+        \EndIf
+        \If{$\lnot b$}
+          \Return $\msg{none}{}$
+        \EndIf
+        \Comment{We now know the transaction is valid.\commentbreak We must
+          determine if $M$ can be\commentbreak honestly decrypted, and which\commentbreak
+          adversarial coin is being spent.}
+        \If{$\exists ((\cdot, K_e), (\pk_z, \pk_e)) \in K$}
+          \State \Let $d = \vn{dec}(M, K_e)$
+          \If{$d = (r', p')$}
+            \State \Let $w \gets \msg{send}{(\pk_z, \pk_e)}$
+          \Else
+            \State \Let $w \gets \msg{send}{(\textsc{simkey}, \bot)}$
+          \EndIf
+        \Else
+          \State \Let $B \gets B \cup \set{(\textsc{simkey}, \bot, \cm')}$
+          \State \Let $w \gets \msg{send}{(\textsc{simkey}, \bot)}$
+        \EndIf
+        \If{$\exists (\pk_z', \pk_e', \cm) \in B : \pk_z' = \prf_{K_z}^{\mathsf{pk}}$}
+          \State \Let $a \gets (\pk_z', \pk_e')$
+        \Else
+          ~\Abort
+        \EndIf
+        \State \Let $T(\tx) \gets \set{\cm'}$
+        \State \Let $z \gets \varnothing$
+      \Else
+        ~\Return $\msg{none}{}$
+      \EndIf
+    \ElsIf{$w = \msg{mint}{} \land \transcript_\sigma = (\msg{mint}{\cm}, \varnothing)$}
+      \State \Let $B \gets B \cup \set{(\textsc{simkey}, \bot, \cm)}$
+      \State \Let $T(\tx) \gets \set{\cm'}$
+      \State \Let $z \gets (\textsc{simkey}, \bot); a \gets \varnothing$
+    \Else
+      ~\Return $\textsc{none}$
+    \EndIf
+    \State \Return $(\party, w, z, a, D)$
+  \end{receive}
+
+  \begin{helpers}
+    \Procedure{$\vn{root}$}{$t$}
+      \State \Let $\vn{cms} \gets \varnothing$
+      \State \SendAndReceive{read}{}{\gledger}{\ledgerstate}
+      \For{$\tx \in \ledgerstate[{:}t]$}
+        \State \Let $\vn{cms} \gets \vn{cms} \cup T(\tx)$
+      \EndFor
+      \State \Return $\vn{merkleroot}(\vn{cms})$
+    \EndProcedure
+  \end{helpers}
+\end{simulator}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../../main"
+%%% End:

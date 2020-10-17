@@ -1,0 +1,26 @@
+\begin{leakagefnsketch}{$\lkgfn_{\mathsf{pp}}$}
+  Each operation on $\tnsfn_{\mathsf{pp}}$ has minimal leakage, revealing only
+  which operation was performed, and in the case of a transfer, the ledger length and
+  the recipient -- if and only if the recipient is corrupted.
+
+  \vsep
+
+  \begin{receiveinputsketch*}{$(\partyview = (\ell, U, T, \jointstate), \party, w)$}
+    Reject initialization transactions if $\jointstate$ is already initialized, or
+    a transaction in $U$ is an initializing transaction. Reject spending
+    transactions if the coins held in $\jointstate$, minus the coins spend in each
+    transaction in $U$ is not greater than zero.
+
+    Leak the type of transaction (\textsc{init}, \textsc{send}, \textsc{mint},
+    or \textsc{balance}). If the transaction is $\textsc{send}$, leak the ledger length
+    $\ell$, and, if the receiving public key is adversarial, the recipient. There
+    are no dependencies. In the case of minting, provide the calling party's
+    public key as a context, in the case of balance queries, combine the
+    available balance and provide this as a context.
+  \end{receiveinputsketch*}
+\end{leakagefnsketch}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../../../main"
+%%% End:

@@ -1,0 +1,46 @@
+\begin{transitionfn}{$\tnsfnkachina_{\vn{auction}}$}
+  A simple private auction contract.
+
+  \vsep
+
+  \begin{receiveinput}{bid}{v}
+    \SplitState{\SendAndReceive{bind}{v,
+      \tnsfnkachina_\vn{auction}}{\tnsfnkachina_B}{(\openbid, \bidcomm, v)}}
+    \State \SendAndReceive*{$\vn{makeBid}_\bidcomm$}{$\oracle_\sigma$}{$\top$}
+    \SplitState{\SendAndReceive*{$\vn{recordBid}_{\openbid, \bidcomm, v}$}{$\oracle_\rho$}{$\top$}}
+  \end{receiveinput}
+
+  \begin{receiveinput}{reveal}{}
+    \SplitState{\SendAndReceive*{$\vn{retrieveBid}$}{$\oracle_\rho$}{$(\openbid,
+      \bidcomm, v)$}}
+    \State \SendAndReceive{identity}{}{\tnsfnkachina_\vn{id}}{\pk}
+    \State \SendAndReceive*{$\vn{projMax}$}{$\oracle_\rho$}{$v'$}
+    \If{$v' < v$}
+      \SplitState{\Send{assertValidFor}{\openbid, \bidcomm, v, \pk,\allowbreak
+          \tnsfnkachina_\vn{auction}}{\tnsfnkachina_B}}
+      \SplitState{\SendAndReceive*{$\vn{claimMax}_{\openbid, \bidcomm, v, \pk}$}{$\oracle_\sigma$}{$\top$}}
+    \Else
+      \State \Send{unbind}{\openbid, \pk}{\tnsfnkachina_B}
+      \State \SendAndReceive*{$\vn{claimLoss}_\bidcomm$}{$\oracle_\sigma$}{$\top$}
+    \EndIf
+  \end{receiveinput}
+
+  \begin{receiveinput}{withdraw}{}
+    \State \SendAndReceive{identity}{}{\tnsfnkachina_\vn{id}}{\pk}
+    \State \SendAndReceive*{$\vn{withdraw}_\pk$}{$\oracle_\sigma$}{$(X, x)$}
+    \If{$X = A$}
+      \State \Send{transfer}{x, \pk}{\tnsfnkachina_A}
+    \Else
+      \State \Send{unbind}{x, \pk}{\tnsfnkachina_B}
+    \EndIf
+  \end{receiveinput}
+
+  \begin{receiveinput}{advance-stage}{}
+    \State \SendAndReceive{identity}{}{\tnsfnkachina_\vn{id}}{\pk}
+    \State \SendAndReceive*{$\vn{advanceStage}_\pk$}{$\oracle_\sigma$}{$\top$}
+  \end{receiveinput}
+\end{transitionfn}
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../../main"
+%%% End:

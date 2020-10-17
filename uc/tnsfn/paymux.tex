@@ -1,0 +1,93 @@
+\begin{transitionfn}{$\tnsfnkachina_{\vn{paymux}}$}
+  The multiplexing with registration, loopback, and payments transition function
+  $\tnsfnkachina_{\vn{paymux}}$ allows addressing any pair of address and
+  sub-transition function $(a, \tnsfnkachina)$. These sub-transition functions may,
+  return values of either $\smallmsg{call}{A, M}$, or $\smallmsg{return}{y}$. In the
+  former case, a different sub-transition function is invoked, and the value it
+  eventually returns is fed back into the original one, by re-invoking it with
+  $\msg{resume}{y}$.
+
+  \begin{pubstatedecl}
+    \statevar{\Sigma}{\varnothing}{Mapping from address pairs to public states}
+  \end{pubstatedecl}%
+  \vspace{-1em}
+  \begin{privstatedecl}
+    \statevar{\Rho}{\varnothing}{Mapping from address pairs to private states}
+  \end{privstatedecl}
+
+  \begin{receiveinput}{token}{w}
+    \State \Assert $w \neq \msg{system-send}{\ldots}$
+    \State \Let $\oracle_\sigma' \gets \lambda q :
+      \oracle_\sigma(\vn{muxPubOracle}(\textsc{token}, q))$
+    \State \Let $\oracle_\rho' \gets \lambda q :
+      \oracle_\rho(\vn{muxPrivOracle}(\textsc{token}, q))$
+    \State \Return $\tnsfnkachina_{\vn{sp},\oracle_\sigma', \oracle_\rho'}(w)$
+  \end{receiveinput}
+
+  \begin{receiveinput}{call}{v, A = (i, \tnsfnkachina, \vn{desc}, \vn{dep}), w}
+    \State \Let $\pk \gets \tnsfnkachina_{\vn{paymux},\oracle_\sigma,\oracle_\rho}\msg{token}{\msg{send}{A, v}}$
+    \State \Return $\vn{call}_{\oracle_\sigma,\oracle_\rho}(v, \pk, A, w)$
+  \end{receiveinput}
+
+  \begin{helpers}
+    \Function{$\vn{subCall}_{\oracle_\sigma,\oracle_\rho}$}{$v, A, A' = (i, \tnsfnkachina, \vn{desc}, \vn{dep}), w$}
+      \State \Assert $A' \neq \textsc{token}$
+      \State \Let $\oracle_\sigma' \gets \lambda q :
+        \oracle_\sigma(\vn{muxPubOracle}(\textsc{token}, q))$
+      \State \Let $\oracle_\rho' \gets \lambda q :
+        \oracle_\rho(\vn{muxPrivOracle}(\textsc{token}, q))$
+      \State \Run $\tnsfnkachina_{\vn{sp},\oracle_\sigma',
+        \oracle_\rho'}\msg{system-send}{A, A', v}$
+      \State \Return $\vn{call}_{\oracle_\sigma,\oracle_\rho}(v, A, A', w)$
+    \EndFunction
+    \Function{$\vn{call}_{\oracle_\sigma,\oracle_\rho}$}{$v, A, A' = (\cdot, \tnsfnkachina, \cdot, \cdot), w$}
+      \State \Let $\oracle_\sigma' \gets \lambda q :
+        \oracle_\sigma(\vn{muxPubOracle}(A', q))$
+      \State \Let $\oracle_\rho' \gets \lambda q :
+        \oracle_\rho(\vn{muxPrivOracle}(A', q))$
+      \Repeat
+        \State \Let $y \gets \tnsfnkachina_{\oracle_\sigma',\oracle_\rho'}\msg{call}{A, v, w}$
+        \If{$\exists v', A'', w' : y = \msg{call}{v', A'', w'}$}
+          \SplitState{\Let $w \gets
+            \smallmsg{resume}{\vn{subCall}_{\oracle_\sigma,\oracle_\rho}(v', A', A'',\allowbreak w')}$}
+        \EndIf
+      \Until{$\exists y' : y = \msg{return}{y'}$}
+      \State \Return $y'$
+    \EndFunction
+    \Function{$\vn{muxPubOracle}$}{$A, q, \sigma, \varnothing$}
+      \If{$A \notin \sigma.\Sigma$}
+        \Let $\sigma.\Sigma(A) \gets \varnothing$
+      \EndIf
+      \State \Let $\sigma' \gets \sigma.\Sigma(A)$
+      \State \Let $(\sigma', y) \gets q(\sigma', \varnothing)$
+      \If{$\sigma' = \bot$}
+        \Return $(\bot, y)$
+      \Else
+        \State \Let $\sigma.\Sigma(A) \gets \sigma'$
+        \State \Return $(\sigma, y)$
+      \EndIf
+    \EndFunction
+    \Function{$\vn{muxPrivOracle}$}{$A, q, \rho, (\sigma^o, \rho^o,
+        \sigma^\pi, \rho^\pi, \eta)$}
+      \SplitState{\Let $(\rho.\Rho, \sigma^o.\Sigma. \rho^o.\Rho, \sigma^\pi.\Sigma,
+        \rho^\pi.\Rho) \gets\allowbreak \vn{forceInitMaps}(\allowbreak(\rho.\Rho,
+        \sigma^o.\Sigma, \rho^o.\Rho, \sigma^\pi.\Sigma, \rho^\pi.\Rho), A,
+        \varnothing)$}
+      \State \Let $\rho' \gets \rho.\Rho(A)$
+      \State \Let $z' \gets (\sigma^o.\sigma_i, \rho^o.\rho_i,
+        \sigma^\pi.\sigma_i, \rho^\pi.\rho_i, \eta)$
+      \State \Let $(\rho', y) \gets q(\rho', z')$
+      \If{$\rho' = \bot$}
+        \Return $(\bot, y)$
+      \Else
+        \State \Let $\rho.\Rho(A) \gets \rho'$
+        \State \Return $(\rho, y)$
+      \EndIf
+    \EndFunction
+  \end{helpers}
+\end{transitionfn}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../../main"
+%%% End:

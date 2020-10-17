@@ -1,0 +1,175 @@
+\section{Technical Overview}
+\label{sec:overview}
+
+We first informally establish the goals and core technical ideas of this
+paper. These will be fleshed out in the remainder of the paper's body, with some
+of the technical details -- primarily in-depth UC constructions and proofs -- in
+the\ \iffull appendix\else technical report~\cite{fullversion}\fi.
+We will discuss each of our contributions in turn, and discuss how,
+combined, they present a powerful tool for constructing privacy-preserving smart
+contract systems.
+
+\paragraph{Our model}
+
+We model smart contracts as \emph{reactive state machines}, which users interact
+with by submitting transactions to a distributed ledger. A user submits a
+transaction, with the intention to issue some high-level command to the
+smart contract, e.g. to cast a vote, or withdraw funds. Once the
+transaction is confirmed by the distributed ledger, the user obtains information
+about the results of this high-level command: both whether it has been processed, and any
+information it may have computed using the contract's state.
+
+As multiple users can interact with the same smart contract system concurrently,
+users cannot always predict the effect of their actions; a vote may end before
+a user's voting transaction is processed, for instance. As a result the user
+may not be able to predict the outcome of the command, or even if it can be
+carried out.
+
+To capture privacy, the act of creating a transaction to post on the
+distributed ledger is the only point at which we permit privacy leakage. As a
+user may go offline at any point, any private information they reveal -- a bid
+during an opening phase of an auction for instance -- must be revealed in the
+on-chain transaction itself. Formally, we model this with a \emph{leakage
+  function} $\lkgfn$, which describes what information is leaked if a user,
+seeing a specific contract state, issues a specific command. This function can
+also fix choices that an interaction may make -- for instance if the command is ``send a coin
+to Bob'', it may decide \emph{which} coin to send to Bob. To give users full
+control over their privacy, even when these decisions are complex or randomized,
+we ask them to sign off on a description of the leakage before the transaction
+is broadcast.\ The leakage in \kachina\ captures
+  information which a user purposely decides to reveal, as the functionality
+  they gain by doing so is worth whatever damage they take to their private
+  information. It is further worth noting that nothing prevents a malicious
+  contract from finding clever ways to leak information without being
+  observable. This highlights the importance of interacting only with
+  trustworthy contracts, and the importance of the leakage descriptor being accurate.
+
+Similarly to the leakage function, the semantics of the contract itself are
+largely dictated by a \emph{transition function} $\tnsfn$. It describes how the
+state of a smart contract evolves given a command and a few auxiliary inputs
+(such as the choice of coin alluded to above).
+
+\paragraph{The core protocol idea}
+
+The \kachina\ core protocol restricts itself to contracts which divide
+their state into a public state $\sigma$, and, for each party $\party$, a
+private state $\rho_\party$. These correspond to the shared ledger, and a
+party's local storage respectively. Transition functions are over pairs
+$(\sigma, \rho_\party)$ instead of over \emph{all} private states -- a party may
+only change their own private state. Honest users maintain their own private
+state in accordance with the contracts' rules, while the contract must
+anticipate that dishonest parties may set it arbitrarily (this can be
+circumvented by committing to private states, as descripted in
+\iffull\autoref{sec:pstateconsistency}\else\cite[Appendix~G]{fullversion}\fi, although it comes at the cost of increased
+public state sizes, and loss of anonymity).
+
+A natural construction to achieve privacy in smart contracts utilizing
+zero-knowledge proof systems is apparent: On
+creating a transaction, a user $\party$ evaluates the transition function against the
+current contract state $(\sigma, \rho_\party)$, resulting in a state $(\sigma',
+\rho'_\party)$. He creates a zero-knowledge proof that $\sigma \mapsto \sigma'$
+is a valid transition of public states (i.e. there exists a corresponding
+private state and input such that this transition takes place), and posts the
+proof and transition as a transaction.
+Locally, the user updates his private state to $\rho'_\party$.
+
+We can also clearly describe the leakage of this sketched protocol: The
+transition $\sigma \mapsto \sigma'$ is precisely the information which is
+revealed!
+
+\paragraph{State oracles}
+
+The core protocol sketched above has two major problems:
+\begin{enumerate}
+  \item Due to each transaction containing a proof of transition from one state to another,
+    concurrent transactions will almost certainly fail once the state is changed.
+  \item The size of the statement being proved, and therefore the size of transactions,
+    grows linearly with the overall size of the contract's state.
+\end{enumerate}
+
+These drawbacks are especially notable in systems with many users and a high
+frequency of transactions: On Ethereum a transaction is almost
+certainly applied after many other transactions the author never knew about, nor
+should need to know about. The state the contract will be in once it executes
+a transaction, is something the transaction's author cannot predict accurately. In the naive system
+proofs only succeed in the state they were originally created for, as
+\autoref{fig:transferabilitybad} suggests. Instead of capturing a transition
+from $\sigma \mapsto \sigma'$, we would rather want to capture a (partial)
+function from states to successor states.
+
+\subimport*{fig/}{transferabilitybad}
+
+To solve these issues, we add a layer of indirection for accessing and updating
+contract states: Instead of the state being a direct input to the transition function, the
+contract has access to \emph{oracles} operating on the public and private
+states. The contract makes queries to these oracles: functions which update
+the state, and return information about it. To prove the interaction with the
+public state correct, users capture the queries they made, and
+the responses they expect, in a sequence $((q_1, r_1), \ldots, (q_n, r_n))$: a
+\emph{transcript} of oracle interactions. The user proves that, given the
+responses expected, they know an input which will make this series of queries.
+
+Conversely, a user validating this transcript can verify this proof, and
+evaluate the queries in turn against the public state, ensuring the responses
+match. This defines a partial function over public states, which is defined
+wherever the responses recorded in the transcript match the results obtained by
+evaluating the queries on the current state.
+
+Selecting what queries a contract makes provides a great deal of control over
+the domain of the function: a query which has an empty response will always
+succeed! In limiting queries to returning only essential information, many
+conflicts can be avoided. Transcripts can also be concise about what changes are
+made, assuming the queries are encoded in a sufficiently succinct language, such
+as most Turing-complete languages.
+
+While not all conflicts are resolved through this as the responses may not match
+those expected, it allows the proof to focus on the \emph{relevant} parts of the
+state, being compatible with more concurrent transactions, as pictured in
+\autoref{fig:transferabilitygood}.
+
+\subimport*{fig/}{transferabilitygood}
+
+In order to be able to model partial transaction success, which
+is crucial for modeling transaction fees, we allow for a special query to
+be made, $\msg{commit}{}$. $\msg{commit}{}$ queries mark checkpoints in a
+transaction's execution, such that if an error occurs after it, the execution up
+to this point is still meaningful. This effectively partitions the transcript
+into atomic segments. We primarily use this to construct
+transaction fees within a smart contract itself, the details of which can be
+seen in \iffull\autoref{sec:fees}\else\cite[Appendix~J.5]{fullversion}\fi.
+
+\paragraph{High-level usage}
+
+Even when using state oracles, this protocol is limited to contracts which have
+their state fit neatly into accessing only shared public state, and local
+private state. The natural description of many contracts does not match this.
+For instance: a private currency contract is most directly described through
+a \emph{shared private} state tracking the balances of all parties.
+
+However, it \emph{is} simple to express the Zerocash~\cite{SP:BCGGMT14} protocol in terms of
+interactions with shared public, and local private states. This provides a
+practical means to \emph{achieve} what we can \emph{describe} using a shared
+private state. It is important to have both the most natural description of a
+contract, and the realization. The former provides a good understanding of
+the features and security properties of a contract, while the latter
+realizes it.
+
+This idea is nothing but the notion of simulation-based security itself! We use
+multiple stages of UC-emulation: First moving from our objective
+contract (a private payments contract) to a contract within the \kachina\
+constraints on state (a Zerocash contract), and second moving on to the
+\kachina\ core protocol. Due to the transitivity of UC emulation, we may therefore
+use this ``\kachina\ method'' to construct the objective of private payments. This
+process is outlined in \autoref{fig:kachinamethod}.
+
+Our model is designed to facilitate this usage. Specifically for
+modeling objective contracts the model allows the adversary to provide an
+additional adversarial input to each transaction. This input allows the
+simulator to control some parts of the ideal behaviour similar to the simulator's
+influence on an ideal functionality, for instance to ensure
+ideal world addresses match real-world public keys.
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "main"
+%%% End:

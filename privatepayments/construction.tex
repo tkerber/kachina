@@ -1,0 +1,57 @@
+\subsection{Ideal Private Payments}
+
+To simplify the external interface, we only use single denomination coins. The
+same approach can be applied to the full Zerocash protocol, with some caveats on
+coin selection and leakage.
+
+We formally specify the private token 
+contract through its transition and leakage functions, $\tnsfn_{\mathsf{pp}}$
+and $\lkgfn_{\mathsf{pp}}$. The contract supports the following inputs:
+\begin{itemize}
+  \item $\msg{init}{}$, giving a party a unique public key
+  \item $\msg{send}{\pk}$, sending a coin to the public key $\pk$
+  \item $\msg{mint}{}$, creating a new coin for the calling party
+  \item $\msg{balance}{}$, returning the current balance
+\end{itemize}
+
+\subimport*{../uc/sketch/tnsfn/}{privatepayments}
+\subimport*{../uc/sketch/lkgfn/}{privatepayments}
+
+\subsection{The Zerocash \kachina\ Contract}
+\label{app:zerocashkachina}
+
+The contract implementing Zerocash, which we will use to realize the private
+token contract, follows its source protocol closely, albeit with single
+denomination coins.
+
+\subimport*{../uc/sketch/tnsfn/}{zerocash}
+\subimport*{../uc/deps/}{zerocash}
+\subimport*{../uc/desc/}{zerocash}
+\subimport*{./}{classproof}
+
+\sloppy We can observe that (with some help from the simulator), the ideal Zerocash
+  contract, given by $(\tnsfn_\vn{zc}, \lkgfn_\vn{zc}) =\allowbreak
+  (\tnsfnmainkachina(\tnsfnkachina_\vn{zc}),\allowbreak \lkgfnmainkachina(\tnsfnkachina,
+  \vn{desc}_\vn{zc}, \vn{dep}_\vn{zc}))$, is equivalent to the ideal private
+  payments contract $(\tnsfn_\vn{pp}, \lkgfn_\vn{pp})$. Formally, we instantiate
+  two instances of $\fsc$, as presented in \autoref{sec:fsc}, and show that any
+  attack against $(\tnsfn_\vn{zc}, \lkgfn_\vn{zc})$ can be simulated against
+  $(\tnsfn_\vn{pp}, \lkgfn_\vn{pp})$.
+
+\fussy
+
+\subimport*{./}{theorem}
+
+This proof can also be carried out via invariants. Here the invariant tracking
+is simple: The real and ideal world have the same coins owned by the same users
+at any time. Our simulator, described in \iffull\autoref{sec:fullpp}\else\cite[Appendix~C.4]{fullversion}\fi, has a lot of
+book-keeping to do, mostly to conjure up fake commitments and encryptions for
+the real-world adversary, and replicating them in the real world. We provide a
+full proof sketch in \iffull\autoref{app:ppproof}\else\cite[Appendix~E]{fullversion}\fi.
+
+\subimport*{./}{corollary}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:

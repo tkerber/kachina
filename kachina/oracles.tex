@@ -1,0 +1,365 @@
+\subsection{State Oracles and Transcripts}
+\label{sec:oracles}
+\label{sec:context}
+\label{sec:auctionexample}
+
+We introduce \emph{state oracles} and \emph{state oracle transcripts} to
+abstract interaction with a contract's state. We choose this abstraction
+primarily for its flexibility, and many other approaches are possible, such as
+byte-level memory accesses, or specific data structures such as set of unspent
+transactions. These can be seen as instances of state oracles. We make use
+  of the notation $[a, b, c]$ to denote a list of $a$, $b$, and $c$, with the
+  concatenation operator $\concat$, and the empty list $\epsilon$. We
+  use the function $\vn{last}$ to retrieve the last element of a list, and
+  $L[i]$ to denote the $i$th element of the list $L$.
+
+\paragraph{An example}
+
+To better motivate the need to abstract interactions with a contract's state, we
+will use a representative example smart contract, and discuss how different
+abstractions of its state will affect it.
+
+Our example is a \emph{sealed bid auction} contract\footnote{This contract is
+  designed to make a good example, not a good auction -- we do not recommend
+  using it as presented.}, which we assume has some means of telling the time,
+and\ interacting with two on-chain assets, one public and one private. These may be
+  constructed similarly as in \autoref{app:privatepayments}, however should be
+  holdable and spendable by other contracts. We do not go into detail of this
+  construction; this idea is fleshed out in detail in Zether~\cite{zether}.
+The auction is opened by the \emph{seller} party, and multiple \emph{buyer}
+parties may bid on it. The auction has three stages: Bidding, opening, and
+withdrawing. The auction contract allows for the following
+interactions:
+
+\begin{itemize}
+  \item At initialization, the seller transfers ownership of the public asset $A$ to the
+    auction contract.
+  \item In Stage 1, buyers submit their bids, transferring some amount of
+    the private asset $B$ to the auction contract, which remains anonymous.
+  \item In Stage 2, buyers \emph{reveal} their bid. If the
+    buyer's bid exceeds the currently maximum revealed bid, they reveal their
+    committed asset, increase the maximum bid, and they record themselves as the
+    winning bidder. Otherwise, they withdraw their bid from the contract without
+    revealing its value.
+  \item In Stage 3, buyers withdraw any assets they own after the
+    auction -- either their (losing) bids, or the sold asset (for the highest
+    bidder). The seller withdraws the highest bid, or the original asset if no
+    bids were made.
+  \item In Stage 1 and 2, the seller may advance the stage.
+\end{itemize}
+
+\noindent This contract needs to maintain in its state:
+\begin{itemize}
+  \item The current stage the auction is in.
+  \item A reference to the asset being sold.
+  \item A set of bids made.
+  \item The winning bid, its value, and who made it, during the reveal phase.
+  \item A set of losing bids, which have not yet been withdrawn, during the
+    reveal phase.
+  \item Privately, a user remembers which bids are theirs, and how to reveal
+    them.
+\end{itemize}
+
+Suppose we adopted a naive approach to state transitions, and proved the
+transitioning from one state to another directly, with no abstraction of any
+kind. During the bidding phase it is easily possible for multiple users to
+attempt to bid simultaneously (especially considering the delay until
+transactions become confirmed by an underlying ledger). In this case, only one
+of these transactions will succeed -- as soon as this transaction changes the
+state by adding its own bid, the proof of any other simultaneous transaction
+becomes invalid.
+
+The simple abstraction of byte-level access would allow a buyer and a seller
+to withdraw concurrently, as their withdrawals affect different parts of the
+state. It does not do so well in allowing concurrent bids to be made, however.
+If the set is implemented with a linked list, for instance, two users attempting
+to add their own bid simultaneously will change the same part of the state: the
+pointer to the next element.
+
+A smart abstraction should realize that whichever user bids first, the resulting
+set of bids is the same, even if its binary representation may not be. Even if
+the order of the interactions matters, a smart abstraction may allow concurrent
+interactions. When claiming the maximum bid in the auction, Alice may increase
+it to 5, while Bob may increase it to 7 concurrently. It should not matter to
+Bob's transaction if the maximum bid is currently 3, or 5 -- although Alice's
+must be rejected if the bid is increased to 7 first.
+
+\paragraph{General-purpose state oracles}
+
+The abstraction we propose is that of \emph{programs}. Appending a value to an
+linked list can be encoded as a program which a) traverses to the end of the
+current list, b) creates a new cell with the input value, and c) links this from
+the end of the list. Formally, these programs are executed by a universal
+machine called a \emph{state oracle} with access to the current (public or
+private) state $\arbstate$, and potentially an additional \emph{context} $z$.
+
+\begin{definition}
+  \label{def:oracle}
+  A state oracle $\oracle = \utm(\arbstate_0, z)$, given an initial state
+  $\arbstate_0$, and context $z$, is an interactive machine internally
+  maintaining a state $\arbstate$, a transcript $\transcript$, and a vector
+    of fallback states $\partstate{\arbstate}$\ (initially set to the input
+  $\arbstate_0$, $\epsilon$, and $[\arbstate_0]$\ respectively), which
+  permits the following interactions:
+  \begin{itemize}
+    \item Given a $\msg{commit}{}$ query, set $\partstate{\arbstate} \gets
+        \partstate{\arbstate} \concat [\arbstate]$, and append $\msg{commit}{}$ to
+        $\transcript$.
+    \item Given a query $q$ while $\arbstate$ is $\bot$, return $\bot$.
+    \item Otherwise, given a query $q$, compute $(\arbstate', r) \gets q(\arbstate, z)$.
+      Update $\arbstate$ to $\arbstate'$, append $(q, r)$ to $\transcript$, and
+      return $r$.
+    \item $\vn{state}(\oracle)$ returns $(\partstate{\arbstate} \concat [\arbstate], \transcript)$.
+  \end{itemize}
+\end{definition}
+
+The context $z$ is empty ($\varnothing$) for state oracles operating on the public state, and is used in
+state oracles operating on the private state for fine-grained read-only access
+to the state during transaction creation, e.g. to allow private state oracles to read the public
+state.\ 
+Specifically, the oracle operating on the private state can read both the public
+and private states for: a) the confirmed state at the time the transaction was
+created ($\sigma^o$ and $\rho^o$), and b) the \emph{projected} state, an
+optimistic state in which all of the user's unconfirmed transactions are
+executed, at the time the transaction was created ($\sigma^\pi$ and $\rho^\pi$).
+This can be used to make sure new transactions do not conflict with pending ones:
+Selecting which coin to spend uses the confirmed state to ensure the coin
+\emph{can be spent}, and the projected state to ensure a coin is not
+\emph{double spent}. The context is also used to provide a source of randomness
+$\eta$ to the private state oracle. In total, the context of the private state
+oracle is $(\sigma^o, \rho^o, \sigma^\pi, \rho^\pi, \eta)$. The context to the
+public state oracle is empty ($\varnothing$), and we will sometimes omit it.
+
+We say that the oracle \emph{aborts} if it sets its state to $\bot$. The
+  state will then be rolled back to a safe point, specifically the last
+  $\msg{commit}{}$ where the state was non-$\bot$. Looking forward, we will decompose the
+transition function $\tnsfn$ into three components: An oracle operating on the
+public state $\sigma$, an oracle operating on $\party$'s private state
+$\rho_\party$, and a ``core'' transition function $\tnsfnkachina$. This process
+is described in detail in \autoref{sec:classkachina}, with an overview of the
+interactions of $\tnsfnkachina$ with public and private state oracles given
+in \autoref{fig:oracleflow}.
+
+\subimport*{../fig/}{oracleflow}
+
+The notion of \emph{oracle transcripts} is crucial in the functioning
+of \kachina, as it provides a means to decouple the part of a transaction which
+is proven in zero-knowledge from both the public and private states entirely: We
+only prove that given some input, and a sequence of responses recorded in the
+public state transcript, the smart contract must have made the recorded queries.
+
+\paragraph{Revisiting our example}
+
+As an illustration, we show how our auction example interacts with state
+oracles. We define the auction's states more precisely first, where users are
+identified by public keys, denoted with $\pk$:
+
+\newcommand{\openbid}{\vn{bidOpen}}
+\newcommand{\bidcomm}{\vn{bidComm}}
+
+\begin{itemize}
+  \item The current stage, $\vn{stage} \in \set{1, 2, 3}$.
+  \item A reference to the asset being sold and who is selling it: $a, \pk_s$.
+  \item A set of bids made $S$.
+  \item The winning bid, its value, and who made it: $b,
+    v, \pk_b$.
+  \item A set of not yet withdrawn losing bids: $R$.
+  \item Privately, a user remembers openings to their bids, the committed bid
+    itself, and its value: $\openbid, \bidcomm, v$.
+\end{itemize}
+
+Overall, the public state is defined as $\sigma \eqdef (\vn{stage}, \pk_s, a, b,
+\allowbreak v,\allowbreak \pk_b, S, R)$, and the
+private state is defined as $\rho \eqdef (\openbid,\allowbreak \bidcomm, v)$. The public state is
+initialized by the seller to $(1,\pk_s, a, \varnothing, 0, \varnothing,\allowbreak
+\varnothing, \varnothing)$.
+
+The oracle queries corresponding to each interaction with the contract are
+given as closures, i.e. sub-functions which make use of some of their
+parents local variables. To clarify where this is the case, we place such
+variables in the subscript of the function name. These functions are passed to
+either the public or private state oracle as the input $q$, as specified in
+\autoref{def:oracle}.
+
+\begin{itemize}
+  \item Bidding: Given a asset opening $\openbid$, with value
+    $v$, corresponding to an asset commitment $\bidcomm$, which has been
+    bound to the auction contract, $\tnsfnkachina$ first makes the following public
+    oracle query:
+    \begin{algorithmic}
+      \Function{$\vn{makeBid}_{\bidcomm}$}{$(\vn{stage}, \pk_s, a, b, v, \pk_b, S, R)$}
+        \State \Assert $\vn{stage} = 1$
+        \State \Return $((\vn{stage}, \pk_s, a, b, v, \pk_b, S \cup \set{\bidcomm}, R),\top)$
+      \EndFunction
+    \end{algorithmic}
+    Further, it makes the following private oracle query:
+    \begin{algorithmic}
+      \Function{$\vn{recordBid}_{\openbid, \bidcomm, v}$}{$\cdot, \cdot$}
+        \State \Return $((\openbid, \bidcomm, v),\top)$
+      \EndFunction
+    \end{algorithmic}
+  \item Revealing: Given a public key to redeem the funds to in case of losing
+    the auction, $\tnsfnkachina$ first makes a private oracle query to retrieve which bid is owned:
+    \begin{algorithmic}
+      \Function{$\vn{retrieveBid}$}{$(\openbid, \bidcomm, v), \cdot$}
+        \SplitState{\Return $((\openbid, \bidcomm, v),\allowbreak (\openbid, \bidcomm, v))$}
+      \EndFunction
+    \end{algorithmic}
+    Next, the contract makes a further private oracle query for the expected maximum bid,
+    to determine if the buyer's bid is higher:
+    \begin{algorithmic}
+      \Function{$\vn{projMax}$}{$\rho, z = (\cdot, \cdot, \sigma^\pi =
+        (\ldots, v', \ldots), \cdot, \cdot)$}
+        \State \Return $(\rho, v')$
+      \EndFunction
+    \end{algorithmic}
+    If this query returns $v' < v$, the contract attempts to claim the maximum
+    bid with the public oracle query\footnote{Note that the claim may fail if
+      the maximum bid increased from the one projected at the time of
+      transaction creation.}:
+    \begin{algorithmic}
+      \Function{$\vn{claimMax}_{\openbid,\bidcomm,v,\vn{pk}}$}{$\sigma$}
+        \State \Let $(\vn{stage}, \pk_s, a, b_o, v_o,\allowbreak \pk_o, S, R)
+          \gets \sigma$
+        \State \Assert $\bidcomm \in S \land v > v_o \land \vn{stage} = 2$
+        \SplitState{\Return $((\vn{stage}, \pk_s, a, \openbid, v, \pk, S \setminus
+          \{\bidcomm\},$\splitstatebreak$R \cup \set{(b_o, \pk_o)}),\top)$}
+      \EndFunction
+    \end{algorithmic}
+    If the original value test fails, on the other hand, instead
+    the contract transfers the ownership of $\bidcomm$ via the underlying asset
+    system to $\pk$, and runs the public oracle query:
+    \begin{algorithmic}
+      \Function{$\vn{claimLoss}_{\bidcomm}$}{$(\vn{stage}, \pk_s, a, b, v_o, \pk_o,
+        S, R)$}
+        \State \Assert $\bidcomm \in S \land \vn{stage} = 2$
+        \SplitState{\Return $(\top, (\vn{stage}, \pk_s, a, b, v_o, \pk_{o}, S \setminus \set{\bidcomm},\allowbreak
+          R))$}
+      \EndFunction
+    \end{algorithmic}
+  \item Withdrawing: Given a public key $\pk$, which the caller knows the
+    corresponding secret key for, the contract will make an oracle query to
+    determine which assets to transfer ownership of, and to un-record them in a
+    public oracle query:
+    \begin{algorithmic}
+      \Function{$\vn{withdraw}_\pk$}{$(\vn{stage}, \pk_s, a, b, v, \pk_b, S, R)$}
+        \State \Assert $\vn{stage} = 3$
+        \If{$\pk = \pk_s \land b \neq \varnothing$}
+          \State \Return $((\vn{stage}, \varnothing, a, \varnothing, \varnothing, \pk_b, S,
+          R),(B, b))$
+        \ElsIf{$\pk = \pk_b \land a \neq \varnothing$}
+          \State \Return $((\vn{stage}, \pk_s, \varnothing, b, v, \varnothing, S, R),(A, a))$
+        \ElsIf{$\exists c : (c, \pk) \in R$}
+          \SplitState{\Return $((\vn{stage}, \pk_s, a, b, v, \pk_b, S, R \setminus \set{(c,
+            \pk)}),\allowbreak (B, c))$}
+        \EndIf
+      \EndFunction
+    \end{algorithmic}
+  \item Advancing the stage: The seller (given their public key $\pk$) may
+    advance the contracts stage from 1 or 2 to 2 or 3 respectively with a public
+    oracle query:
+    \begin{algorithmic}
+      \Function{$\vn{advanceStage}_\pk$}{$(\vn{stage}, \pk_s, a, b, v, \pk_b, S,
+        R)$}
+        \State \Assert $\pk = \pk_s \land \vn{stage} \in \set{1, 2}$
+        \State \Return $((\vn{stage} + 1, \pk_s, a, b, v, \pk_b, S, R), \top)$
+      \EndFunction
+    \end{algorithmic}
+\end{itemize}
+
+This example does not handle corner cases (such as buyers bidding multiple
+times), and is not intended for practical use. Instead, its purpose is to
+illustrate the advantages state oracles provide: The query an interaction will
+make, and the response it will receive, are often not affected by other
+interactions. Concurrent bids do not conflict, for instance. The representation
+of data is also not crucial, as the state oracles may themselves interact with
+abstract data types.
+
+We complete our example by specifying the core transition function $\tnsfnkachina$,
+under the assumptions that a means to call into a separate asset management
+system (a contract that permits transferring ownership of assets between public
+keys), such as presented in \iffull\autoref{sec:payments}\else\cite[Appendix~J.4]{fullversion}\fi, exists. We also assume that
+a user's public key can be retrieved with a shared ``identity'' contract.
+
+\subimport*{../uc/tnsfn/}{auction}
+
+
+\paragraph{Using transcripts}
+\kachina\ relies on a few key observations on how transcripts relate to the
+original state oracle execution. To begin with, we define a few ways in which
+transcripts may be used.
+\begin{definition}
+  A state oracle transcript $\transcript$ may be applied to a state $\arbstate$
+  in a context $z$. We write $\partstate{\arbstate} \gets \transcript(\arbstate, z)$, or if
+  $z = \varnothing$, $\partstate{\arbstate} \gets \transcript(\arbstate)$, the operation of
+  which is defined through the following loop:
+  \begin{algorithmic}
+    \Function{$\transcript$}{$\arbstate, z$}
+      \State \Let $\oracle \gets \utm(\arbstate, z)$
+      \For{$(q_i, r_i) \loopin \transcript$}
+        \State \SendAndReceive*{$q_i$}{$\oracle$}{$r$}
+        \If{$r \neq r_i$}
+          \Return $\bot$
+        \EndIf
+      \EndFor
+      \State \Let $(\partstate{\arbstate}, \cdot) \gets \vn{state}(\oracle)$
+      \State \Return $\partstate{\arbstate}$
+    \EndFunction
+  \end{algorithmic}
+  If a transcript is malformed, applying it will result in $[\arbstate,
+    \bot]$.
+\end{definition}
+
+If $\arbstate' = \transcript(\arbstate, z) \neq \bot$, then 
+The returned $\partstate{\arbstate}'$ is indistinguishable from the internal state
+$\partstate{\arbstate} \concat [\arbstate]$ of the state oracle $\utm(\arbstate_0,
+z)$, given the same sequence of queries. This allows users to replicate the
+effect other users' queries have on the public state, without knowing \emph{why}
+these queries were made.
+
+\begin{definition}
+  A sequence of transcripts and contexts $X = ((\transcript_1, z_1), \ldots,
+  (\transcript_n, z_n))$ is applied by applying each transcript in order. We write
+  $\transcript^*_X(\arbstate)$, which has the recursive definition:
+  \begin{itemize}
+    \item $\transcript^*_\epsilon(\arbstate) \eqdef \arbstate$
+    \item $\transcript^*_{X \concat [(\transcript, z)]}(\arbstate) \eqdef
+      \vn{last}(\transcript(\transcript^*_X(\arbstate), z))$
+  \end{itemize}
+\end{definition}
+
+\begin{definition}
+  A transcript $\transcript = ((q_1, r_1), \ldots, (q_n, r_n))$
+  (potentially including $\msg{commit}{}$ messages)\ induces a
+  transcript oracle $\oracle(\transcript)$, which behaves as follows:
+  \begin{itemize}
+    \item Recorded $\msg{commit}{}$ messages are ignored.
+    \item For the $i$th query $q_i'$, return $r_i$ if $q_i' = q_i$, otherwise
+      abort by returning $\bot$ for this, and all subsequent queries.
+    \item When $\vn{consumed}(\oracle)$ is queried, return $\top$ if exactly $n$
+      queries were made, otherwise return $\bot$.
+  \end{itemize}
+  If in an interaction with the oracle, $\vn{consumed}$ holds, the transcript
+  was \emph{minimal} for this interaction.
+\end{definition}
+
+If the transcript oracle $\oracle(\transcript)$ doesn't abort when used as an
+oracle in some function, then it behaves identically to the original universal
+oracle that was used to generate the transcript. We use this fact to generate
+zero-knowledge proofs about transactions -- we prove that each oracle query in a
+transcript was made, and that the behavior is correct, \emph{given the
+  responses the transcript claims}. We also prove that $\vn{consumed}(\oracle)$
+holds, ensuring the transcript doesn't just start with the queries an honest
+execution would make, but that it matches them exactly.
+
+These are used together to define how a transaction is made, and how it is
+applied: Alice generates a transcript for the oracle accesses her transaction
+will perform, and proves this transcript both correct and minimal. She sends the
+transcript and proof to Bob, who is convinced by the proof of correctness and
+minimality, and can therefore reproduce the effect of the transaction by
+applying the transcript to the state directly.
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:

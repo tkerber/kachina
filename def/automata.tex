@@ -1,0 +1,151 @@
+\subsection{Interactive Automata Interpretation}
+
+Smart contracts are a form of \emph{reactive computation}: Parties supply an input
+to the contract, the latter internally performs a stateful computation, and returns a
+result to the original caller. The result is returned asynchronously, and may
+depend on interactions with other users. This is quite close to the concept of a
+trusted third party, although real-world systems have caveats:
+\begin{itemize}
+  \item They \emph{leak} information about the computation performed.
+  \item They allow some \emph{adversarial influence}, partly due to relying on the
+    transaction ordering of an underlying ledger.
+  \item They may carry some impure \emph{execution context}: A transaction may
+    depend on what the state is at the time it is created, for instance.
+\end{itemize}
+
+Often when talking about smart contracts, only the ``on-chain'' component
+is considered. This is insufficient for privacy, as by its nature, everything
+on-chain is public. We therefore model the off-chain component of the
+interaction as well. This can be as simple as placing inputs directly on the
+ledger, but can involve more complex pre-computation. Even without the need for
+privacy, the need to model off-chain computation of smart contracts had been
+observed~\cite{CKMM+19}, and we believe a formal model should account for it.
+
+To represent a contract, we use a transition function, operating over the
+contract's state. We denote the initial state as $\varnothing$. Transition
+functions are deterministic, although limited nondeterminism can be simulated by
+including randomness in the execution context. Notably, such randomness is
+  fixed on transaction creation, allowing the creator to input (potentially
+  biased) randomness, which is subsequently used in the (replicated) execution
+  of the contract's state machine. Potential uses include the creation of
+  randomized ciphertexts or commitments. The transition function will also
+  output if a transaction should be considered ``confirmed'' or not, with the
+  latter indicating failure or only partial success, which dependant
+  transactions should not build on.
+
+A contract \emph{transition function} $\tnsfn$ is a pure, deterministic
+function with the format $(\jointstate', c, y) \gets \tnsfn(\jointstate, \party, w, z, a)$, with the
+following inputs and outputs:
+\vspace{-1em}
+\begin{multicols}{2}
+\begin{itemize}
+  \item The current state $\jointstate$
+  \item The calling party $\party$
+  \item The input $w$
+  \item The execution context $z$
+  \item The adversarial input $a$
+  \item The successor state $\jointstate'$
+  \item The output $y$
+  \item The confirmation state $c$
+\end{itemize}
+\end{multicols}
+\vspace{-1em}
+
+In addition to the transition function, it is necessary to capture what leakage
+an interaction with the contract has. The two are separated due to the
+asynchronous nature of smart contracts -- a transaction is made, and leaks
+information, before the corresponding transition function is run on-chain.
+
+The leakage is captured by a \emph{leakage function}, which receives the same
+input, and further receives the creating user $\party$'s ``view'' $\partyview$ of the
+contract as an input. $\partyview = (\ell, U_\party, T, \jointstate)$ consists of four items: a) The
+length of $\party$'s view of the ledger $\ell$. b) $\party$'s unconfirmed
+transactions $U_\party$. c) A map $T$ from $\tx \in U_\party$ to $(\party, w,
+z,\allowbreak a, D)$. These are $\tnsfn$'s inputs, and the transaction's dependencies, which we will introduce
+shortly, $D$. d) The contract's state according to $\party$'s view of the ledger,
+$\jointstate$. This ``view'' may be used to avoid attempting
+double-spends by selecting a coin to spend which no other unconfirmed
+transaction uses, for instance. For this purpose the leakage
+function can also abort by returning $\bot$, refusing to create a transaction.
+The function returns a leakage value $\vn{lkg}$, which is passed to the
+adversary, a description of the leakage which occurred, $\vn{desc}$, a list
+of transactions to depend on, $D$, and the context $z$. While $\vn{lkg}$ may be
+arbitrary, it is important that $\vn{desc}$ provides an accurate and readable
+description of this leakage. Its primary purpose is to allow parties to decide
+\emph{not} to go ahead with a transaction if they notice the leakage is more
+than expected. With complex contracts, anticipating what will be leaked should
+not be relied upon. The usage of a descriptor highlights that
+  $\lkgfn$ should not be maliciously supplied, and facilitates simulation, as
+  shown in \autoref{app:privatepayments}.
+The leakage may additionally depend on the current time, a list of
+  unconfirmed transactions and -- for each transaction -- their corresponding
+  inputs to $\tnsfn$ and their dependencies. This may be used to avoid
+  attempting double-spends for instance, by ensuring that the context specifies
+  to use a coin which no other unconfirmed transaction uses.
+
+It is worth emphasising that the leakage discussed in this paper is
+  deliberate; this is not leakage observed over a network, which can be hard to
+  identify, but is instead information which users accept to reveal. For
+  instance, a leakage in Zerocash~\cite{SP:BCGGMT14} is the length of the ledger at the time a
+  transaction is created, with the security of the protocol guaranteeing that
+  this -- but nothing more -- is revealed to an adversary.
+
+The list of dependencies $D$ is a list of transactions, which must occur
+in the same order before the newly created transaction can be applied. This can
+be used to enforce basic ordering constraints between transactions. Finally, the
+context $z$ allows information about the state at the time of transaction
+creation to be passed to the transition function. This may include the current
+state, unconfirmed transactions, and a source of randomness. Its content is left
+arbitrary at this point.
+
+A \emph{leakage function} $\lkgfn$ is a pure, non-deterministic
+function with the format $(\vn{desc}, \vn{lkg}, D, z) \gets
+\lkgfn(\partyview,\party, w)$, with the following inputs and outputs:
+\vspace{-1em}
+\begin{multicols}{2}
+\begin{itemize}
+  \item $\party$'s contract view $\partyview$
+  \item The calling party $\party$
+  \item The input $w$
+  \item The leaked data $\vn{lkg}$
+  \item The leakage descriptor $\vn{desc}$
+  \item The tx dependencies $D$
+  \item The context $z$
+\end{itemize}
+\end{multicols}
+\vspace{-1em}
+
+We consider the pair $(\tnsfn, \lkgfn)$ to define a smart contract, and
+  parameterize the ideal smart contract functionality presenting in
+  \autoref{sec:fsc} by this pair. The ideal
+world interaction with a smart contract follows the below pattern:
+
+\begin{enumerate}
+  \item A party submits a contract input $w$.
+  \item The corresponding context and leakage are computed.
+  \item The party agrees to the leakage description, or cancels (in the latter
+    case, the transaction never takes place, and no information is revealed).
+  \item The adversary is given $(\vn{lkg}, D)$, and provides the adversarial
+    input $a$.
+  \item The submitting party can retrieve the output of
+    $\tnsfn$ (if any), while other parties can interact with the modified state.
+\end{enumerate}
+
+The level of privacy guaranteed depends greatly on the leakage function
+$\lkgfn$: A leakage function which returns its input directly as leakage
+provides no privacy, while one which returns no leakage at all provides almost total
+privacy (notably the fact some interaction was made is still leaked). By tuning
+this, the privacy of Ethereum, Zerocash, and everything in between can be
+captured.
+
+Our model relies on users querying the result of transactions manually -- they
+are not notified of the acceptance of a transaction, and can not modify it once
+made. If a transaction is not yet confirmed by the ledger, the user gets the
+result $\msg{not-found}{}$, if the transaction depends on failed transactions,
+$\bot$ is returned, and otherwise the result is provided by the
+contract itself (which may also inform of partial success).
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:

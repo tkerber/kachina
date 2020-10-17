@@ -1,0 +1,44 @@
+\begin{simulator}{$\simul_{\kachina}$}
+  The simulator $\simul_{\kachina}$ has two main points of interaction in
+  the ideal world: First, it gets notified of the leakage of honest submissions,
+  in the form of the new public state $\sigma'$, and decides their format on the
+  ledger. Second, it gets queried when an adversarial transaction is seen on the
+  ledger, and must assign meaning to them. Furthermore, it simulates the
+  non-global functionality $\fnizk$, which the adversary may interact
+  with.
+
+  \begin{statedecl}
+    \statevar{\fnizk}{}{Simulation of $\fnizk$}
+  \end{statedecl}
+
+  \begin{receive}[\fsc]{transaction}{\transcript_\sigma, D}
+    \SplitState{\QueryAdv
+      [\nizkproof][\nizkproof \neq \bot \land (\cdot, \nizkproof) \notin
+      \fnizk.\proofs \land (x, \nizkproof) \notin
+      \fnizk.\disproofs][\bit^\secparam][\fnizk][splitearlier]
+      {prove}{(\transcript_\sigma, D)}}
+    \State \Let $\fnizk.\proofs \gets \fnizk.\proofs \cup
+      \{((\transcript_\sigma, D), \nizkproof)\}$
+    \State \Return $((\transcript_\sigma, D, \nizkproof), \varnothing)$
+  \end{receive}
+
+  \begin{receive}[\fsc]{input}{(\transcript_\sigma, D, \nizkproof)}
+    \State \SendAndReceive[][sim]{verify}{(\transcript_\sigma, D), \nizkproof}{\fnizk}{b}
+    \If{$b \land \exists w, \transcript_\rho :
+        \fnizk.W((\transcript_\sigma, D), \nizkproof) = (w,
+        \transcript_\rho)$}
+      \State \Return $(\adversary, w, (\transcript_\sigma, \oracle(\transcript_\rho)), \varnothing, D)$
+    \Else
+      \State \Return $\msg{none}{}$
+    \EndIf
+  \end{receive}
+
+  \vspace{1em}
+  \noindent\emph{Forward all queries to $\fnizk$ to the simulated instance.
+    Forward all queries, to global functionalities directly.}
+\end{simulator}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../../main"
+%%% End:

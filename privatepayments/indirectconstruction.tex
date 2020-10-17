@@ -1,0 +1,25 @@
+\subsection{Indirect Construction}
+
+Following the design of Zerocash~\cite{SP:BCGGMT14}, we write a contract that
+maintains the necessary Zerocash secrets: coin randomnesses, commitment
+openings, and secret keys. The private state oracle computes the off-chain
+information required to make a Zerocash transaction: Merkle-paths to your own
+commitments, the selection of randomness for new coins, and the encryption of
+the secret information of these coins. This information is handed to the
+central, provable core of the contract, which computes a coin's serial number,
+verifies the Merkle-path, and verifies the integrity of the transaction.
+Finally, the serial number and new commitment are sent to the public state
+oracle, which ensures the former is new, and adds the latter to the current
+tree.
+
+This design is not self-evidently correct, and is not the objective itself.
+Specifying what goal it achieves, in terms of an ideal leakage and transition
+function, allows us to build a clean ideal world, with a clear private token
+contract. This ideal world is constructed in two steps: First showing that the
+Zerocash contract UC-emulates it, and second showing that the Zerocash contract
+is in turn UC-emulated by \kachina.
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:

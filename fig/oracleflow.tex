@@ -1,0 +1,45 @@
+\tikzstyle{contract}=[draw, thick, rectangle, minimum height=9em, minimum width=3em]
+\tikzstyle{lambda}=[rectangle, minimum height=9em, minimum width=2em]
+\tikzstyle{ucnode}=[]
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[auto,thick,node distance=1.5em]
+    \draw
+    node [contract] at (0, 0) (qc) {$\utm$}
+    node [lambda,right=of qc] (log1) {}
+    node [contract, right=of log1] (cmain) {$\tnsfnkachina$}
+    node [lambda,right=of cmain] (log2) {}
+    node [contract, right=of log2] (pc) {$\utm$};
+    \draw[->] ($(cmain.north east)+(0,-0.5)$) -- node {$q_1^\sigma$} ($(pc.north west)+(0,-0.5)$);
+    \draw[<-] ($(cmain.north east)+(0,-1)$) -- node (b1) {$r_1^\sigma$} ($(pc.north west)+(0,-1)$);
+    \draw[->] ($(cmain.south east)+(0,1)$) -- node (an) {$q_n^\sigma$} ($(pc.south west)+(0,1)$);
+    \draw[<-] ($(cmain.south east)+(0,0.5)$) -- node {$r_n^\sigma$} ($(pc.south west)+(0,0.5)$);
+    \draw[<-] ($(qc.north east)+(0,-0.5)$) -- node {$q_1^\rho$} ($(cmain.north west)+(0,-0.5)$);
+    \draw[->] ($(qc.north east)+(0,-1)$) -- node (d1) {$r_1^\rho$} ($(cmain.north west)+(0,-1)$);
+    \draw[<-] ($(qc.south east)+(0,1)$) -- node (cn) {$q_n^\rho$} ($(cmain.south west)+(0,1)$);
+    \draw[->] ($(qc.south east)+(0,0.5)$) -- node {$r_n^\rho$} ($(cmain.south west)+(0,0.5)$);
+    \draw[->] (qc.100)+(0, 1) -- node[near start] {$z$} (qc.100);
+    \draw[->] (qc.80)+(0, 1) -- node[near start] {$\rho$} (qc.80);
+    \draw[->] (cmain.90)+(0, 1) -- node[near start] {$w$} (cmain.90);
+    \draw[->] (pc.90)+(0, 1) -- node[near start] {$\sigma$} (pc.90);
+    \draw[<-] (pc.-90)+(0, -1) -- node[near start,auto=right] {$\sigma'$} (pc.-90);
+    \draw[<-] (qc.-90)+(0, -1) -- node[near start,auto=right] {$\rho'$} (qc.-90);
+    \draw[<-] (cmain.-90)+(0, -1) -- node[near start,auto=right] {$y$} (cmain.-90);
+    \path (b1) -- node[auto=false] {\vdots} (an);
+    \path (d1) -- node[auto=false] {\vdots} (cn);
+    \draw[dashed] ($(cmain.north west)+(-0.25,0.25)$) rectangle ($(pc.south east)+(0.25,-0.5)$);
+    \draw[dashed] ($(qc.north west)+(-0.25,0.5)$) rectangle ($(cmain.south east)+(0.25,-0.25)$);
+    \node at ($(log1.north)+(-0.15,0.25)$) {Private};
+    \node at ($(log2.south)+(0.15,-0.25)$) {Trusted};
+\end{tikzpicture}
+
+\caption{The interaction of the core contract $\tnsfnkachina$, with two
+  universal machines $\utm$, acting as state oracles over the public state
+  $\sigma$, and the private state $\rho$, together with the context $z$.}
+\label{fig:oracleflow}
+\end{figure}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:

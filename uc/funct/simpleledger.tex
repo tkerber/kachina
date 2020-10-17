@@ -1,0 +1,35 @@
+\begin{functionality}{$\gsimpleledger$}
+    The simplified interface to $\gledger$ is strictly less powerful than
+    actual ledger implementations, allowing reasoning about a less complex
+    ledger functionality.
+    \begin{statedecl}
+      \statevar{\ledgerstate}{\epsilon}{Authoritative ledger state}
+      \statevar{M}{\lambda \party . \epsilon}{Mapping of parties to ledger states}
+    \end{statedecl}
+    \begin{receive}{submit}{\tx}
+      \Comment{The adversary is not required to ever put\commentbreak
+        transactions on the ledger.\commentbreak Where it doesn't, the execution
+        is unlikely\commentbreak to be interesting, however.}
+      \State \QueryAdv{transaction}{\tx}
+    \end{receive}
+    \begin{receive}{read}{}
+      \If{$\party = \adversary$}
+        \Return $\ledgerstate$
+      \Else
+        ~\Return $M(\party)$
+      \EndIf
+    \end{receive}
+    \begin{receive}[adversary]{extend}{\ledgerstate'}
+      \State \Let $\ledgerstate \gets \ledgerstate \concat \ledgerstate'$
+    \end{receive}
+    \begin{receive}[adversary]{advance}{\party, \ledgerstate'}
+      \If{$M(\party) \prec \ledgerstate' \prec \ledgerstate$}
+         \Let $M(\party) \gets \ledgerstate'$.
+      \EndIf
+    \end{receive}
+\end{functionality}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:

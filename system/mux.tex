@@ -1,0 +1,46 @@
+\subsection{Multiplexing Contracts}
+
+The basic multiplexing contract takes $n$ different sub-contracts as inputs.
+Each party supplies not only the input, but the index $i$ of the contract they
+wish to call. The public and private states of the multiplexer consist of the
+product of the corresponding sub-contract states, and oracle queries are
+re-written to address the correct part of the state. To do some, new oracles
+$\oracle_\sigma'$ and $\oracle_\rho'$ are constructed, which rewrite queries
+made to them. Then, the requested transition function is run with these oracles,
+instead of the original ones.
+
+\subimport*{../uc/tnsfn/}{mux}
+
+\sloppy
+We assume the existence of $\vn{unmuxPubOracle}$ and
+$\vn{unmuxPrivOracle}$, which take an oracle transcript to an Oracle produced
+by a multiplexed oracle, and return the pair $(i, \transcript')$, where $i$ is
+the address used in the original multiplexing, and $\transcript'$ is the
+equivalent un-multiplexed transcript.
+
+\fussy
+\begin{algorithmic}
+  \Function{$\vn{unmuxZ}_{\vn{mux}}$}{$(\sigma^o, \rho^o, \sigma^\pi, \rho^\pi, \eta), i$}
+    \State \Return $(\sigma^o.\sigma_i, \rho^o.\rho_i, \sigma^\pi.\sigma_i,
+      \rho^\pi.\rho_i, \eta)$
+  \EndFunction
+\end{algorithmic}
+\begin{algorithmic}
+  \Function{$\vn{unmuxX}_{\vn{mux}}$}{$X, i$}
+    \State \Let $X' \gets \epsilon$
+    \For{$(u, \transcript, z, D) \loopin X$}
+      \If{$\exists \transcript' : \vn{unmuxPrivOracle}(\transcript) = (i, \transcript')$}
+        \State \Let $X' \gets X' \concat (u, \transcript',
+          \vn{unmuxZ}_{\vn{mux}}(z, i), D)$
+      \EndIf
+    \EndFor
+    \State \Return $X'$
+  \EndFunction
+\end{algorithmic}
+\subimport*{../uc/desc/}{mux}
+\subimport*{../uc/deps/}{mux}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:

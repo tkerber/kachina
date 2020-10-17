@@ -1,0 +1,139 @@
+\begin{protocol}{\kachina}
+  The \kachina\ protocol realizes the ideal smart contract functionality when
+  parameterized by a transition function $\tnsfnkachina$, a leakage descriptor
+  $\vn{desc}$, and a dependency function $\vn{dep}$, such that the corresponding
+  $(\tnsfn, \lkgfn)$ pair is in $\classkachina$. It operates in
+  the $(\fnizk, \gsimpleledger)$-hybrid model, where $\lang$ is
+  defined below.
+
+  $((\transcript_\sigma, \cdot), (w, \transcript_\rho)) \in \lang$ if and only
+  if, where $\oracle_\sigma \gets \oracle(\transcript_\sigma)$, and
+  $\oracle_\rho \gets \oracle(\transcript_\rho)$,
+  $\vn{last}(\tnsfnkachina_{\oracle_\sigma, \oracle_\rho}(w))\allowbreak\neq \bot$, and after it is run,
+  $\vn{consumed}(\oracle_\sigma) \land \vn{consumed}(\oracle_\rho)$ holds.
+
+  \begin{statedecl}
+    \statevar{T}{\varnothing}{Mapping from transactions to their private state
+      transcripts and contexts.}
+    \statevar{Y}{\varnothing}{Mapping from transactions to their outputs.}
+    \statevar{U}{\epsilon}{Sequence of unconfirmed transactions.}
+  \end{statedecl}
+
+  \begin{receive}{post-query}{w}
+    \State \Let $\ledgerstate \gets \vn{updateState}(\party)$
+    \State \Let $(\sigma^o, \rho^o) \gets \vn{execState}(\ledgerstate)$
+    \State \Let $\sigma^\pi \gets \sigma^o; \rho^\pi \gets \rho^o; X \gets \epsilon$
+    \For{$u = (\transcript_\sigma, D, \cdot) \loopin U$}
+      \State \Let $(\transcript_\rho, z) \gets T(u)$
+      \State \Let $\sigma^\pi \gets \transcript_\sigma(\sigma^\pi); \rho^\pi
+        \gets \transcript_\rho(\rho^\pi, z)$
+      \State \Let $X \gets X \concat (u, \vn{split}(\transcript_\rho,
+        \msg{commit}{}), z, D)$
+    \EndFor
+    \State \Let $\eta$ be a randomness stream.
+    \State \Let $z \gets (\sigma^o, \rho^o, \sigma^\pi, \rho^\pi, \eta)$
+    \State \Let $(\partstate{\sigma}, \transcript_\sigma, \partstate{\rho}, \transcript_\rho, \partresults) \gets
+      \runtnsfn(\sigma^\pi, \rho^\pi,w, z)$
+    \If{$\vn{last}(\partstate{\sigma}) = \bot \lor \vn{last}(\partstate{\rho}) = \bot$}
+      \State \Return \textsc{rejected}
+    \EndIf
+    \State \Let $D \gets \vn{dep}(X, \transcript_\rho, z)$
+    \SplitState{\SendAndReceive{leak}{\vn{desc}(|\ledgerstate|, X,
+      \transcript_\sigma, \transcript_\rho, w, z)} {\party}{b}}
+    \If{$b$}
+      \SplitState{\SendAndReceive{prove}
+        {(\transcript_\sigma, D), (w, \transcript_\rho)}
+        {\fnizk}
+        {\nizkproof}}
+      \State \Let $\tx \gets (\transcript_\sigma, D, \nizkproof)$
+      \State \Let $T(\tx) \gets (\transcript_\rho, z); Y(\tx) \gets \partresults; U \gets U
+        \concat \tx$
+      \State \Send{submit}{\tx}{\gsimpleledger}
+      \State \Return $\msg{posted}{\tx}$
+    \Else
+      \State \Return $\msg{rejected}{}$
+    \EndIf
+  \end{receive}
+
+  \begin{receive}{check-query}{\tx}
+    \State \Let $\ledgerstate \gets \vn{updateState}(\party)$
+    \If{$\tx \in \ledgerstate$}
+      \Return $\vn{execResult}(\vn{prefix}(\ledgerstate, \tx))$
+    \Else
+      ~\Return $\msg{not-found}{}$
+    \EndIf
+  \end{receive}
+
+  \begin{helpers}
+    \Procedure{$\vn{updateState}$}{$\party$}
+      \State \SendAndReceive{read}{}{\gsimpleledger}{\ledgerstate}
+      \State \Let $C \gets \vn{execConfirmed}(\ledgerstate)$
+      \State \Let $U' \gets U$
+      \Repeat
+        \State \Let $U \gets U'$
+        \For{$\tx = (\cdot, D, \cdot) \loopin U$}
+          \If{$D \nsubseteq (C \cup U) \lor (D \cap C) \not\sqsubseteq \ledgerstate$}
+            \State \Let $U' \gets U' \setminus \set{\tx}$
+          \EndIf
+        \EndFor
+      \Until{$U = U'$}
+      \State \Return $\ledgerstate$
+    \EndProcedure
+    \Procedure{$\vn{execState}$}{$\ledgerstate$}
+      \State $\textbf{let }(\sigma, \cdot, \cdot) \gets \vn{exec}(\ledgerstate)
+      \textbf{ in return } \sigma$
+    \EndProcedure
+    \Procedure{$\vn{execResult}$}{$\ledgerstate$}
+      \State $\textbf{let }(\cdot, y, \cdot) \gets \vn{exec}(\ledgerstate)
+      \textbf{ in return } y$
+    \EndProcedure
+    \Procedure{$\vn{execConfirmed}$}{$\ledgerstate$}
+      \State $\textbf{let }(\cdot, \cdot, C) \gets \vn{exec}(\ledgerstate)
+      \textbf{ in return } C$
+    \EndProcedure
+    \Procedure{$\vn{exec}$}{$\ledgerstate$}
+      \State \Let $\sigma \gets \varnothing; \rho \gets \varnothing; y \gets
+        \bot; C \gets \varnothing$
+      \For{$\tx = (\transcript_\sigma, D, \nizkproof) \loopin \ledgerstate$}
+        \If{$\tx \in C$}
+          \Continue
+        \EndIf
+        \State \Let $y \gets \bot$
+        \SplitState{\SendAndReceive{verify}{(\transcript_\sigma, D), \nizkproof}{\fnizk}{b}}
+        \If{$\lnot b$}
+          \Continue
+        \EndIf
+        \If{$D \setminus C \neq \varnothing \lor D \not\sqsubseteq \ledgerstate$}
+          \Continue
+        \EndIf
+        \State \Let $C \gets C \cup \set{\tx}$
+        \If{$T(\tx) \neq \bot$}
+          \SplitState{\Let $\vn{parts} \gets \vn{zip}(\vn{split}(\transcript_\sigma, \msg{commit}{}),\allowbreak
+              \vn{split}(T(\tx), \msg{commit}{}), Y(\tx))$}
+          \For{$(\transcript_\sigma', \transcript_\rho, y') \loopin \vn{parts}$}
+            \If{$\transcript_\sigma'(\sigma) = \bot$}
+              \State \Let $C \gets C \setminus \set{\tx}$
+              \State \Break
+            \EndIf
+            \State \Let $\sigma \gets \transcript_\sigma'(\sigma); \rho \gets
+              \transcript_\rho(\rho); y \gets y'$
+          \EndFor
+        \Else
+          \For{$\transcript_\sigma' \loopin \vn{split}(\transcript_\sigma, \msg{commit}{})$}
+            \If{$\transcript_\sigma(\sigma) = \bot$}
+              \State \Let $C \gets C \setminus \set{\tx}$
+              \State \Break
+            \EndIf
+            \State \Let $\sigma \gets \transcript_\sigma'(\sigma)$
+          \EndFor
+        \EndIf
+      \EndFor
+      \State \Return $((\sigma, \rho), y, C)$
+    \EndProcedure
+  \end{helpers}
+\end{protocol}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../../main"
+%%% End:

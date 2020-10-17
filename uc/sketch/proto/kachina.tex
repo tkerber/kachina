@@ -1,0 +1,56 @@
+\begin{protocolsketch}{\kachina}
+  The \kachina\ protocol realizes the ideal smart contract functionality when
+  parameterized by a transition function $\tnsfnkachina$, a leakage descriptor
+  $\vn{desc}$, and a dependency function $\vn{dep}$, satisfying
+    \autoref{def:dep}. It operates in the $(\fnizk, \gsimpleledger)$-hybrid
+  model, where $((\transcript_\sigma, \cdot), (w, \transcript_\rho)) \in
+    \lang$ iff $\tnsfnkachina_{\oracle(\transcript_\sigma),
+      \oracle(\transcript_\rho)}(w)$ does not abort, and exists normally.
+
+  \vspace{1em}\noindent\emph{Executing a ledger state:}
+
+  Starting with an initial state $(\sigma, \rho) \gets (\varnothing,
+  \varnothing)$, and an empty set of confirmed transactions, for each
+  transaction in the ledger verify their dependencies\ and proofs. If they are
+    satisfied, apply $\transcript_\sigma$ in commit-separated parts, up to (not
+    including) the first $\bot$ result, if any. If available, execute
+    $\transcript_\rho$ to the same depth, and if this depth is the full depth of
+    the transcript, mark the transaction as confirmed. If an output is
+    requested, and the transaction's output vector $\partresults$ is available,
+    return the output indexed with the confirmation depth.\ Otherwise, skip it.
+
+  \vspace{1em}\noindent\emph{Prior to any interaction:}
+
+  Compute which transactions have been rejected in the ledger state, and remove
+  any unconfirmed transactions that -- directly or indirectly -- depend on them.
+
+  \begin{receivesketch}{post-query}{w}
+    Read the ledger state, and compute the corresponding smart-contract state
+    $(\sigma^o, \rho^o)$. Create a projected contract state $(\sigma^\pi,
+    \rho^\pi)$ by applying in order the transcripts from unconfirmed
+    transactions to the already computed contract state.
+
+    Select a randomness stream $\eta$, and set the context $z$ to the old state
+    $(\sigma^o, \rho^o)$, the projected state $(\sigma^\pi, \rho^\pi)$, and
+    $\eta$. Run $\tnsfnkachina$ against against this projected state and context,
+    and retrieve the new states and transcripts $\transcript_\sigma$,
+    $\transcript_\rho$, as well as the output\ vector $\partresults$. Compute the dependencies $D$
+    and leakage description $\vn{description}$.
+
+    Ask $\party$ if $\vn{description}$ is an acceptable leakage. If so, create a
+    NIZK proof $\nizkproof$ that $((\transcript_\sigma, D), (\transcript_\rho, w))
+    \in \lang$. Record $\transcript_\rho$ and $z$, and the result vector $\partresults$, and
+    publish $\tx = (\transcript_\sigma, D, \nizkproof)$ on $\gledger$. Record
+    $\tx$ as unconfirmed, and return it.
+  \end{receivesketch}
+
+  \begin{receivesketch}{check-query}{\tx}
+    If $\tx$ is in the current view of the ledger, execute the ledger to
+      retrieve the output associated with $\tx$, if any.
+  \end{receivesketch}
+\end{protocolsketch}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../../../main"
+%%% End:

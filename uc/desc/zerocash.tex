@@ -1,0 +1,19 @@
+\begin{algorithmic}
+  \Function{$\vn{desc}_{\mathsf{zc}}$}{$t, \cdot, \cdot, \cdot, w, \cdot$}
+    \If{$w = \msg{init}{}$}
+      \Return $\msg{init}{}$
+    \ElsIf{$\exists \pk : w = \msg{send}{\pk}$}
+      \Return $\msg{send}{t, \pk}$
+    \ElsIf{$w = \msg{mint}{}$}
+      \Return $\msg{mint}{}$
+    \ElsIf{$w = \msg{balance}{}$}
+      \Return $\msg{balance}{}$
+    \Else
+      ~\Return $\bot$
+    \EndIf
+  \EndFunction
+\end{algorithmic}
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../../main"
+%%% End:

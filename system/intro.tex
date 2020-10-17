@@ -1,0 +1,30 @@
+To construct complex systems of multiple smart contracts, no additional
+machinery is required. In this section, we incrementally construct a complex
+system with similar functionality to Ethereum~\cite{ethereum}. We begin by
+multiplexing between a fixed set of transition functions, and expand this with
+the ability to allow new transition functions to be registered, transition
+functions to call each other, registered contracts to hold and transfer funds,
+and combine in a setting where computation has an associated
+cost, which must be paid by the caller. We finally show how access to the
+underlying ledger may be modeled.
+
+It is worth noting that we only concern ourselves with the ``real world'' of
+\kachina\ core contracts. A reasonable question is how to transfer a proof such as the
+one we presented in \autoref{app:privatepayments} into this setting. While we
+don't go into the details here, we observe that (with one exception for the
+specific token contract used), only the smart contract's own transition function
+affects its state. Running a multiplexed smart contract is equivalent to running
+many small smart contracts independently -- only interpreting the ledger
+differently. This is no longer true once contracts may call each other -- in
+which case it is sufficient to reason about the closure of contracts able to
+call each other instead.
+
+In this section we will assume that the (sub-)contracts do not make use of
+  $\msg{commit}{}$ messages. While this mechanism can be accounted for, it is
+  simpler to present without it, and the primary purpose of $\msg{commit}{}$s in
+the first place is to enable gas payments -- which this section does.
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:

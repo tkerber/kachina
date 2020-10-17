@@ -1,0 +1,84 @@
+\section{Meta-Parties and Their Relation to Alternative Trust Models}
+\label{sec:metaparties}
+
+So far we have presented, and argued for, a model of smart contracts with clear
+black-and-white privacy: Users have their own perfectly private local state, and
+access to a perfectly public shared state. While we believe this to be the best
+starting point for approaching the issue of privacy in smart contracts, reality
+is not so simple: Often users have more complex relations with each other.
+
+To consider this more carefully, we can consider that any piece of data in a
+smart contract must have a set of \emph{owners} $\mathbb{O}$, who can interact
+with it. Furthermore, in any real system, there are parties which can, together,
+decipher the actual data itself, and break the privacy of it. Let us refer to
+the set of all combinations of parties able to decipher the data as
+$\mathbb{T}$. While not strictly necessary, in general it is reasonable to
+assume that the owners are also the users able to break privacy, that is
+$\mathbb{T} \subseteq 2^{\mathbb{O}}$. While clearly there are many possible
+combinations here, a few stand out as interesting, and we observe that they all
+relate to some interpretation of privacy-preserving smart contracts:
+
+\begin{itemize}
+  \item $\mathbb{O} = \parties$, $\mathbb{T} = 2^\parties$: This is the
+    setting of Ethereum, and of the $\sigma$ used in this work. Data is public,
+    but can be interacted with by all.
+  \item $\mathbb{O} = \set{\party}$, $\mathbb{T} = \set{\party}$: This is the
+    setting of $\rho$ used in this work. Data is private, but cannot be
+    interacted with by anyone else.
+  \item $\mathbb{O} = \parties$, $\mathbb{T}$ is all subsets of $\parties$ with
+    a resource majority (regardless of work, stake, or what other honest
+    majority assumption is being made): This setting is feasible by running MPC
+    across the honest majority of the underlying consensus protocol.
+  \item $\mathbb{O}$ is a fixed-size set, $\mathbb{T} = \set{m}$: This is the
+    setting of Hawk~\cite{SP:KMSWP16}, in which a single party is trusted with privacy.
+  \item $\mathbb{O}$ is a fixed-size set, $\mathbb{T} = \{\mathbb{O}\}$: This is
+    the setting of privacy-preserving state-channels, in which parties run MPC
+    out-of-band to agree on updates.
+  \item $\mathbb{O}$ is a fixed-size set, $\mathbb{T} = 2^{\mathbb{O}}$: This is
+    the setting of public state-channels, in which parties run Arbitrum-like
+    protocols out-of-band to agree on updates.
+\end{itemize}
+
+In particular, this work only directly concerns itself with the first two of
+these. It is clear, however that different problems call for different
+solutions, and ideally a smart contract system would encode all of these trust
+systems, not just one, or a few. Part of the reason for the choice of the first
+two is that they are sufficient for constructing the rest, being the exteremes
+of the spectrum.
+
+The case of Hawk, for instance, was already described above in
+\autoref{sec:nonatomic}. We will sketch how state channels might be
+modeled on top of \kachina, although we stress that a full formal treatment of
+this, and other settings, will be left for future work.
+
+A state channel between two users can be interpreted as the two users
+constituting a ``metaparty'' -- a single entity consisting of multiple parties.
+This is subject to some access control for when the constituent parties can act
+on behalf of both -- commonly requiring agreement from all constituent parties.
+If Alice and Bob open a new state channel, this can be seen as creating a new
+combined party of $(\text{Alice}, \text{Bob})$.
+
+In \kachina, this party again has its own private state, and for state channels,
+this can track the most recent update of the channel. Updates are now operations
+that only affect the private state of this combined party, and as argued in
+\autoref{sec:nonatomic} can be left off the ledger entirely. Interestingly,
+the access structure for closing channels, and reading the current state is more
+permissive in most state or payment channels -- requiring only one user to
+initiate it.
+
+Given a state channel system, most of it can be implemented in \ankachina\ smart
+contract. It is not new for state or payment channels to use smart contracts,
+however this is typically only for the opening and closing of the channel.
+We observe that in \kachina\ the update of the channel can also be modeled.
+
+This approach of metaparties is useful, but not optimal. For instance, a
+contract cannot interact with both Alice's private state, and the state channel
+between Alice and Bob at the same time, as presented here. Further, how the
+constituents of a metaparty reach consensus on whether an action is permitted or
+not is unclear, and varies from case to case. We leave as future work giving
+first-class treatment to data owned by multiple parties.
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "main"
+%%% End:

@@ -1,0 +1,377 @@
+\subsection{Proof of \autoref{thm:kachina}}
+\label{sec:proof}
+
+We proceed with the main inductive proof of \autoref{thm:kachina}. We consider
+the base case of the system initializations in the real and ideal worlds. The
+induction hypothesis is that after $k < 2^\secparam$ interactions with any
+environment, the state of both worlds satisfy the invariant $\boldsymbol I$, and
+the environment has not gained a non-negligible advantage in distinguishing. We
+will assume, without loss of generality, the adversary being a dummy adversary.
+We provide a concrete list of actions the environment may take before taking the
+induction step. We note that as at any point the environment cannot distinguish,
+we can assume that it takes the same action in both worlds without loss of
+generality.
+
+\paragraph{Base Case}
+
+\begin{proof}
+  Most base cases hold either due to equal initialization of variables
+  constrained to be equal, or due to initialization leaving forall quantifiers
+  to quantify over the empty set. The former is the case for:
+  \ref{inv:ledger}, \ref{inv:proofs}, \ref{inv:honestrec}, and
+  \ref{inv:unconfirmed}. The latter is the case for: \ref{inv:wit},
+  \ref{inv:honestwit}, \ref{inv:anyrec}, \ref{inv:rejected},
+  \ref{inv:unseenunconfirmed}, \ref{inv:results},
+  \ref{inv:postunrecorded}, and \ref{inv:recordedunconf}. The remaining hold
+  for the following reasons:
+
+  \begin{enumerate}
+  \item[\ref{inv:dep}] \sloppy At initialization, the only prefix of $\gl^r.M(\party)$
+    is $\epsilon$. $\phi_\party.\vn{execState}(\epsilon) = (\varnothing,
+    \varnothing)$. The base case therefore holds iff $J(\varnothing,
+    \varnothing)$ holds. This in turn holds iff
+    $\transcript^*_\epsilon(\varnothing) \neq \bot$, or $\varnothing \neq \bot$.
+  \item[\ref{inv:execcons}] \fussy At initialization, the only ledger state
+    $\ledgerstate$ which satisfies the condition that $\forall \tx \in
+    \ledgerstate : \fsc.T(\tx) \neq \bot$ is $\epsilon$. For
+    this, as both worlds are initialized to equivalent contract states, the
+    outputs of $\vn{exec}$ will be equal.
+  \item[\ref{inv:ledgerord}] By the reflexivity of $\prec$.
+  \qed
+  \end{enumerate}
+\end{proof}
+
+\paragraph{Induction Step}
+
+\begin{proof}
+We observe that the environment is capable of the following queries:
+
+\begin{itemize}
+\item $\forall \party \in \honest, w$:\footnote{We omit without loss of
+    generality the environments ability to make honest queries with corrupted
+    parties. The environment may simulate running the honest protocol to
+    replicate these.} Sending $\msg{post-query}{w}$ to $\fsc$ or
+  $\allowbreak\kachina$.
+\item $\forall \party \in \honest, \tx$: Sending $\msg{check-query}{\tx}$ to
+  $\fsc$ or $\allowbreak\kachina$.
+\item $\forall \party \in \parties, \tx$: Sending $\msg{submit}{\tx}$ to $\gl$.
+\item $\forall \party \in \parties$: Sending $\msg{read}{}$ to $\gl$.
+\item $\forall \Sigma'$: Sending $\msg{extend}{\Sigma'}$ to $\gl$.
+\item $\forall \party, \Sigma'$: Sending $\msg{advance}{\party, \Sigma'}$ to
+  $\gl$.
+\item $\forall \party \in \parties \setminus \honest$: Sending $\msg{prove}{x,
+    w}$ to $\fnizk$.
+\item $\forall \party \in \parties$:\footnote{Technically, as in
+    $\msg{prove}{}$, the environment can only instruct corrupted parties to
+    verify. As verification for honest parties preserves the invariant as well,
+    and is a useful lemma, we prove the more general statement.} Sending
+  $\msg{verify}{x, \nizkproof}$ to $\fnizk$.
+\end{itemize}
+
+We will prove that $\boldsymbol I$ is preserved across any of these queries, and
+that they reveal the same information in both worlds.
+
+\paragraph{Case {\normalfont$\msg{post-query}{w}$}}
+
+We proceed by sub-case analysis. We identify the following cases: 1. The
+transaction is rejected by the contract. 2. The transaction is rejected by the
+user. 3. The transaction is posted. In all cases, $\vn{updateState}$ is first
+run. By \autoref{lem:updatestate}, this preserves the invariant, and also
+ensures that the returned value $\ledgerstate_\party = \gl.M(\party)$ is the
+value returned in both worlds (by \ref{inv:ledger}). In the ideal world,
+$\lkgfn$ is called. The real world largely emulates the same, computing most of
+the same values identically. Of note are the values $\sigma^o$ and
+$\rho^o$/$\boldsymbol\rho^o[\party]$, which are computed in both worlds using
+$\vn{execState}(\ledgerstate_\party)$. By \autoref{lem:execpreserve}, this
+preserves the invariant, and returns the same values.
+
+The only place where the two worlds diverge in their computation is in handling
+the unconfirmed transactions -- the ideal world executes $\runtnsfn$, and
+updates $\sigma^\pi$, $\rho^\pi$, and $X$ according to the confirmation
+  depth, while the real world partially applies $\transcript_\sigma$ and
+  $\transcript_\rho$ to the confirmation depth. Before we go into the
+main three cases, we will argue that, if the transaction is \emph{not} rejected
+by the contract, then these two approaches will yield the same result, and that
+they will reject equally.
+
+To begin with, in the ideal world the confirmation depth is derived from the
+number of transcript parts matching between the newly generated and input
+transcripts. As a transcript application is non-$\bot$ if and only if it can be
+generated in the same way in the current state, this ensures that the
+confirmation depth matches in the two worlds.
+
+Further, we observe that in the real world, the final value of $\rho^\pi$
+\emph{cannot} be $\bot$ -- to begin with, $\vn{updateState}$ guarantees that
+$\ledgerstate_\party \cap \phi_\party.U = \varnothing$. This in turn, along with
+\ref{inv:dep} ensures that $J(X)$ holds, as well as that $\vn{sat}^{*}(X, U)$ holds.
+It follows $\transcript^*(\rho^o) \neq \bot$, where $\transcript^*$ performs the
+same repeated applications of $\transcript_\rho(\rho, z)$ as the loop in the
+main protocol, using the same values. Further, by \ref{inv:wit} and
+\ref{inv:honestwit}, we can conclude that the transcripts $\transcript_\rho$,
+and contexts $z$ are the same in both worlds. By \ref{inv:results} , we can
+conclude that the final $\rho^\pi$ values are also the same in both worlds.
+Further, as $\transcript_\rho$ and $z$ are equal in both worlds, and by
+\ref{inv:anyrec} $D$ is also equal, the sequence $X$ is also equal.
+Subsequently, $\sigma$, $\rho$, and $D$ are computed equivalently in both
+worlds.
+
+We now consider the main case analysis: If the contract rejects the transaction
+in the ideal world, the returned description is $\bot$. This happens if and only
+if $\vn{last}(\partstate{\sigma}) = \bot \lor \vn{last}(\partstate{\rho}) = \bot$, the same condition as the real world
+protocol has for rejecting the transaction before querying the user.\ If the
+transaction is rejected, no variables are modified, preserving $\boldsymbol I$,
+and the same value is returned in both worlds, giving the environment no means
+to distinguish.
+
+If the contract does not automatically reject the query, the leakage descriptor
+is computed equally in both worlds, and sent to the party to acknowledge. The
+party has the opportunity to accept the described leakage, or cancel the
+transaction. At the point of handing over execution to the environment, no state
+has been modified, trivially preserving $\boldsymbol I$, and as the same leakage
+descriptor is given, it has no means to distinguishing.
+
+In the case of the environment subsequently cancelling the transaction, both
+worlds immediately return with $\msg{rejected}{}$, again trivially preserving
+$\boldsymbol I$, and giving no means to distinguish.
+
+Finally, if the environment accepts the leakage, both worlds obtain the
+transaction identifier $\tx$: The simulator ensures that the real-world
+adversary is queried for the same NIZK proof as it is in the real-world, and
+that the transaction format matches that of real-world transactions. At the time
+of the proof query, no state has been modified, trivially preserving
+$\boldsymbol I$. As the same statement is queried for, the environment gains no
+information to distinguish.
+
+Subsequently, both worlds record the transaction's information (in $\fsc.T$ and
+$\phi_\party.T$), and note is as unconfirmed (in $\fsc.U$ and $\phi_\party.U$).
+In the real world, the result is further recorded in $\phi_\party.Y$. The
+following parts of $\boldsymbol I$ are affected and preserved (including the
+$\msg{prove}{}$ query):
+
+\begin{enumerate}
+  \item[\ref{inv:proofs}] By $((\transcript_\sigma, D), \nizkproof)$ being
+    added to both worlds' $\proofs$ equally.
+  \item[\ref{inv:wit}] As $\phi_\party.T$, $\fsc.T$, and
+    $\phi_\party.Y$ are appropriately set to satisfy the RHS of the disjunction.
+  \item[\ref{inv:honestwit}] As for the newly added transaction, $\party \in
+    \honest$, and $((\transcript_\sigma, D),\allowbreak \nizkproof) \notin
+    \simul.\fnizk.W$ (by the uniqueness of statement/proof pairs).
+  \item[\ref{inv:honestrec}] As the newly added transaction is added to all of
+    $\phi_\party.T$, $\phi_\party.U$, and $\fsc.T$, where it is
+    associated with $\party$.
+  \item[\ref{inv:anyrec}] As the newly added transaction does consist of
+    transcript, dependencies and proof, and the former two are recorded in
+    $\fsc.T$ correctly, and $\simul$ returns $\varnothing$ for
+    $a$.
+  \item[\ref{inv:rejected}] As the newly recorded transaction is not recorded
+    as $\textsc{none}$.
+  \item[\ref{inv:dep}] By $J$ being preserved when appending a new
+    transaction, $J$ holds after the induction step (as $\rho$ remains unaffected).
+    $\vn{sat}$ holds by induction hypothesis, and as $D \sqsubseteq U
+    \setminus \set{\tx}$. For the new transaction, $D \setminus C \setminus \phi_\party.U =
+    \varnothing$ as $D \subseteq \phi_\party.U$; for previously transactions this still
+    holds, as $\phi_\party.U$ is expanded.
+  \item[\ref{inv:unseenunconfirmed}] As the newly added transaction is also
+    unconfirmed by the owning party.
+  \item[\ref{inv:results}] By $\transcript_\sigma$, $\transcript_\rho$, and $\partresults$
+    having been extracted from $\runtnsfn$, operating in the context of $w$,
+    $z$, and some $\sigma$, $\rho$, with these values being recorded in the
+    corresponding state variables (except $\sigma$ and $\rho$). As the
+    transcripts are transcripts of oracle evaluations against $w$, and $\partresults$ is
+    the result of $\tnsfnkachina$ operating with these oracles, executing
+    $\tnsfnkachina_{\oracle(\transcript_\sigma), \oracle(\transcript_\rho)}(w)$ has
+    the same effect. Further, as the transcripts accurately reproduce the state
+    change in the original state context, by definition of transcript
+    execution, if the sequence of transcripts up to the confirmation
+      depth can be applied to be non-$\bot$, they are indistinguishable from
+      making the original queries to the state oracle. Combined with the sequence
+    of queries made depending only on $w$ and the state oracle itself, we can
+    conclude that the transcript applications are the same as executing against
+    the state oracles up to the confirmation depth, regardless of which initial state the transcript could be
+    successfully applied to.
+  \item[\ref{inv:execcons}] As a new transaction has been recorded, we must
+    now additionally consider transaction sequences $\ledgerstate$ which contain
+    this new transaction at some point. We cannot directly use
+    \autoref{lem:execpreserve}, however we can make use of its induction: If
+    we can show that any $\ledgerstate$ \emph{ending} with the new transaction
+    $\tx$ satisfies the execution equivalences, then induction from
+    \autoref{lem:execpreserve} can apply on that as a base case (in
+    particular, the precondition for Case~5 applies for all subsequent
+    transactions). The execution equivalence holds for this new base case, as we
+    know that this new transaction is both honest, and considered unconfirmed
+    for this party. Therefore, the argument for Case~5 holds for $\tx$ itself as
+    well. As the execution equivalence defined in \autoref{lem:execpreserve}
+    is the same as that of \ref{inv:execcons}, this part of the invariant is
+    preserved.
+  \item[\ref{inv:postunrecorded}] By the newly added transaction being
+    unconfirmed, it satisfies any quantification where $\tx$ is set to it. By
+    now being recorded, the range of quantifications for $\tx'$ is restricted,
+    relaxing the condition.
+  \item[\ref{inv:unconfirmed}] By equal update.
+  \item[\ref{inv:recordedunconf}] By the newly recorded transaction being
+    considered unconfirmed by an honest party.
+\end{enumerate}
+
+Finally, both worlds submit to the ledger the same transaction $\tx$, which
+simply sent to the adversary. At this point $\boldsymbol I$ holds as argued
+above, and as the same transaction is sent, the environment cannot distinguish.
+Finally, $\msg{posted}{\tx}$ is returned, giving the environment no information
+to distinguish for the same reasons.
+
+\paragraph{Case {\normalfont$\msg{check-query}{\tx}$}}
+
+After running $\vn{updateState}$, \autoref{lem:updatestate} preserves the
+invariant, but also ensures that $\ledgerstate_\party = \gl.M(\party)$, where
+$\ledgerstate_\party$ is the value returned in both worlds (by
+\ref{inv:ledger}).
+
+We consider three cases: 1. $\tx \notin \ledgerstate_\party$, 2. $\fsc.T(\tx) =
+(\party, \ldots)$, and 3. otherwise. In Case~1, both worlds return
+$\allowbreak\msg{not-found}{}$ without updating any state, not allowing the environment to
+distinguish, and preserving $\boldsymbol I$. In Case~2, both worlds run
+$\vn{execResult}(\vn{prefix}(\ledgerstate_\party, \tx))$, preserving $\boldsymbol I$
+according to \autoref{lem:execpreserve}, and returning the same value in both
+worlds, giving the environment no information to distinguish. Finally, in
+Case~3, only the real world runs $\vn{execResult}$, while the ideal world returns
+$\bot$. As previously in $\vn{updateState}$ the sub-function $\vn{execConfirmed}$ was
+run, we know that all NIZK-verifications performed in this $\vn{exec}$ call have
+previously been made -- as a result the call modifies no state, and preserved
+$\boldsymbol I$. Further, by \autoref{lem:execpreserve}, it returns $\bot$, as
+in the ideal world, giving the environment no information to distinguish.
+
+\paragraph{Case {\normalfont$\msg{submit}{\tx}$}}
+
+In both worlds $\tx$ is handed to the adversary, and no other action is taken.
+As the same information is relayed, the environment cannot distinguish, and as
+no state is changed, $\boldsymbol I$ is preserved.
+
+\paragraph{Case {\normalfont$\msg{read}{}$}}
+
+By \ref{inv:ledger}, both worlds will return the same result; therefore the
+environment cannot distinguish. As no state is changed, $\boldsymbol I$ is
+preserved.
+
+\paragraph{Case {\normalfont$\msg{extend}{\Sigma'}$}}
+
+As nothing is returned, the environment gains no information allowing it to
+distinguish. By \ref{inv:ledger}, the updates done are the same in both
+worlds. The parts of the invariant affected and preserved are the following:
+
+\begin{enumerate}
+  \item[\ref{inv:ledger}] By equal update.
+  \item[\ref{inv:execcons}] Extending $\gl.\ledgerstate$ further constrains the
+    possible $\ledgerstate$ values quantified over.
+  \item[\ref{inv:postunrecorded}] Without loss of generality, we can assume
+    single-trans\-action appends to $\gl^r.\ledgerstate$. If a new unrecorded
+    transaction is added, it (at first) does not preceed any transactions,
+    leaving the quantification unchanged, and relaxing the non-existance
+    quantifier. If a recorded honest transaction is added, then by
+    \ref{inv:unseenunconfirmed} and \ref{inv:ledgerord}, this transaction
+    satisfies the conditions.
+  \item[\ref{inv:ledgerord}] By the append-only nature of $\msg{extend}{}$.
+  \item[\ref{inv:recordedunconf}] By relaxing the constraint.
+\end{enumerate}
+
+\paragraph{Case {\normalfont$\msg{advance}{\party, \Sigma'}$}}
+
+As nothing is returned, the environment gains no information allowing it to
+distinguish. By \ref{inv:ledger}, the updates done are the same in both
+worlds. The parts of the invariant affected and preserved are the following:
+
+\begin{enumerate}
+  \item[\ref{inv:ledger}] By equal update.
+  \item[\ref{inv:dep}] Without loss of generality, we can assume
+    single-trans\-action advances. If $\gl.M(\party) \cap \phi_\party.U \neq
+    \varnothing$, or the newly added transaction $\tx \in \phi_\party.U$, this
+    is preserved as the longest prefix remains equal. Otherwise, $\ledgerstate$
+    in the induction step is that of the induction hypothesis, with one
+    transaction $\tx \notin \phi_\party.U$ appended. If $\tx$ is not owned by
+    $\party$, by \ref{inv:honestrec}, $\phi_\party.T(\tx) = \bot$, and
+    therefore $\vn{execState}(\ledgerstate \concat \tx)$ returns the same
+    $\rho$ as $\vn{execState}(\ledgerstate)$, preserving the invariant. If
+    $\tx$ is owned by $\party$, by \ref{inv:unseenunconfirmed}, this
+    transaction will be rejected, likewise returning the same $\rho$. Further,
+    as $D \setminus C \setminus U$ is already $\varnothing$ for all dependency
+    lists $D$, and extending $\ledgerstate$ can only lead to $C$ growing, this
+    condition remains satisfied.
+  \item[\ref{inv:unseenunconfirmed}] By further restricting all-quantification
+    and non-existance quantification.
+  \item[\ref{inv:ledgerord}] By condition that $\gl^r.M(\party) \prec
+    \gl^r.\ledgerstate$.
+\end{enumerate}
+
+\paragraph{Case {\normalfont$\msg{prove}{x, w}$}}
+
+In the ideal world, this query is handled by the simulated functionality
+$\simul.\fnizk$. If $(x, w) \notin \lang$ the call returns immediately
+with $\bot$ in both worlds, and no variables are modified, giving the
+environment no information to distinguish, and preserving $\boldsymbol I$.
+Otherwise, the adversary is immediately queried with $\msg{prove}{x}$ in both
+worlds. Again, at this point no variables have been modified, preserving
+$\boldsymbol I$, and the information handed to the adversary is the same in both
+worlds, giving the environment no information to distinguish. The adversary will
+eventually respond with a proof $\nizkproof$, which is verified against
+constraints in both worlds, and randomly sampled if it does not meet them. By
+\ref{inv:proofs}, the constraints are identical in both worlds. Finally $\proofs$
+and $W$ are set, and $\nizkproof$ returned in both worlds, giving no
+distinguishing information to the environment. The following parts of the
+invariant are affected and preserved:
+
+\begin{enumerate}
+  \item[\ref{inv:proofs}] By equal update.
+  \item[\ref{inv:wit}] By equal insertion into $\fnizkr.W$, and
+    $\simul.\fnizk.W$.
+  \item[\ref{inv:honestwit}] By relaxing the constraint.
+  \item[\ref{inv:unseenunconfirmed}] As the possible results of executing
+    transactions consisting of unrecorded statement/proof pairs is constrained
+    -- the environment can no longer decide if they should be processed or not.
+  \item[\ref{inv:execcons}] As in \ref{inv:unseenunconfirmed}.
+  \item[\ref{inv:postunrecorded}] As in \ref{inv:unseenunconfirmed}.
+  \item[\ref{inv:iswit}] As only members of $\lang$ are recorded.
+  \item[\ref{inv:recordedunconf}] As in \ref{inv:unseenunconfirmed}.
+\end{enumerate}
+
+\paragraph{Case {\normalfont$\msg{verify}{x, \nizkproof}$}}
+
+The flow for verification is only slightly more complex than that for proving.
+At a high level, the adversary may be given a chance to produce a last-moment
+witness for the statement being verified. If it refuses to do so, the proof is
+recorded as definitively invalid. We consider three sub-cases: 1. The
+statement/proof pair is recorded as either valid or invalid. 2. The adversary
+returns a valid witness. 3. The adversary does not return a valid witness.
+
+In Case~1, $\msg{verify}{}$ returns the same value in both worlds by
+\ref{inv:proofs}, giving the environment no means to distinguish. Case~2 is
+equivalent to the adversary first sending a $\msg{prove}{}$ query for the given
+statement, and supplying it with the corresponding proof, and then running the
+$\msg{verify}{}$ query. We therefore refer to Case~1, and the case of
+$\msg{prove}{}$. In Cases~1 and 2, no state is changed, preserving $\boldsymbol
+I$. Finally, for Case~3, $\fnizkr.\disproofs$ is updated equally in both worlds,
+and $\bot$ is returned in both worlds, giving the environment no information to
+distinguish. In this case, the following parts of the invariant are affected and
+preserved:
+
+\begin{enumerate}
+  \item[\ref{inv:proofs}] By equal update.
+  \item[\ref{inv:rejected}] By relaxing the condition on
+    $\fnizkr.\disproofs$.
+  \item[\ref{inv:unseenunconfirmed}] As the possible results of executing
+    transactions consisting of unrecorded statement/proof pairs is constrained
+    -- the environment can no longer decide if they should be processed or not.
+  \item[\ref{inv:execcons}] As in \ref{inv:unseenunconfirmed}.
+  \item[\ref{inv:postunrecorded}] As in \ref{inv:unseenunconfirmed}.
+  \item[\ref{inv:recordedunconf}] As in \ref{inv:unseenunconfirmed}.
+  \qed
+\end{enumerate}
+\end{proof}
+
+As the environment cannot with non-negligible probability between the real and
+ideal world in any single action if $\boldsymbol I$ is preserved, and as
+$\boldsymbol I$ is preserved with overwhelming probability across each action by
+the environment, and holds at protocol initialization, we conclude that the
+environment cannot distinguish in the UC game.%
+%
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:

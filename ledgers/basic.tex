@@ -1,0 +1,67 @@
+\section{Ledger Functionalities}
+\label{app:ledgers}
+
+As smart contracts utilize an inderection layer of an underlying ledger, for
+completeness we will define the behaviour of this underlying ledger. The key
+characteristics of the ledgers used here are that they maintain a sequence of
+transactions, which any user may submit new transactions to, which \emph{may}
+then eventually appear in this sequence. The sequence itself is public, and can
+be read by anyone.
+
+We note in particular that for the purposes of this paper, many common features
+of ledgers are not required -- in particular liveness is optional, although the
+ideal-world guarantees for a ledger without liveness are naturally lessened.
+Further, we do not specify a validation predicate, instead performing the
+validation in our definition of smart contracts. This is solely to have a clean
+separation between the consensus system and the semantics of transactions -- to
+prevent denial-of-service attacks in a real system, this line would need to be
+blurred, and transaction validation partially done in the consensus algorithm.
+
+One feature typical ledger functionalities do not have, which we do explicitly
+use here, is that of transactional privacy. Typically ledgers leak which party
+created a new transaction, something we wish to avoid to strengthen the privacy
+of our protocols. It is worth noting that this leakage is entirely network
+based, and using a sender-anonymous network is sufficient to adapt ``leaky''
+ledgers to this more private variant.
+
+Finally, readers may be surprised that the ``private ledger'' of~\cite{SP:KKKZ19} is not
+used. This is largely for the same reason that validation predicates are avoided
+-- the separation of the ledger and transaction semantics is not possible in
+this private ledger. While it would be possible to encode ideal smart contracts
+as specific ledger blinding functions, this does not accurately model what we
+intend to capture, and results in a large, monolithic, and hard-to-understand
+functionality -- decidedly not ideal.
+
+\subsection{The Perfect Ledger}
+
+The perfect ledger is a platonic ideal form of a distributed ledger -- it allows
+any party to instantly append to its record, and allows any party to read the
+current sequence of recorded transactions. This ledger is very similar to that
+used in~\cite{EC:KiaZhoZik16}, however it is not realized by existing distributed ledger
+protocols -- not least as there is by necessity some network delay.
+
+\subimport*{../uc/funct/}{perfectledger}
+
+\subsection{The Simplified Practical Ledger}
+
+The simplified ledger captures the essence of the traditional persistence
+property of ledgers, although it does not capture liveness. Any user may post
+transactions, which are deemed unconfirmed. The adversary may decide when and
+which unconfirmed transactions to move to an append-only ledger, and may decide
+how long a prefix of this ledger honest parties see -- provided it does not
+remove anything previously revealed to them.
+
+While the liveness property is not captured by this ledger, due to the large
+amount of adversarial control, it is straightforward to see -- although we will
+not demonstrate it here -- that more complex ledgers, such as those defined in
+\cite{C:BMTZ17,CCS:BGKRZ18}, UC-emulate $\gsimpleledger$. In particular, this
+means that if replaced in the ideal world with such a ledger, which \emph{does}
+have the liveness property, we also in practice have liveness for our protocol.
+We discuss the issue of liveness more in \autoref{sec:liveness}.
+
+\subimport*{../uc/funct/}{simpleledger}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:

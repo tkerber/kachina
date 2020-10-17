@@ -1,0 +1,18 @@
+\begin{algorithmic}
+  \Function{$\vn{desc}_{\vn{sp}}$}{$t, X, \transcript_\sigma, \transcript_\rho,
+      w, z$}
+    \If{$\transcript_\sigma = (\msg{init}{}, \pk)$}
+      \State \Return $\msg{init}{\pk}$
+    \ElsIf{$\transcript_\sigma = (\msg{send}{\vn{snd}, \vn{recv}, v}, \cdot)$}
+      \State \Return $\msg{send}{\vn{snd}, \vn{recv}, v}$
+    \ElsIf{$\transcript_\sigma = (\msg{mint}{\pk, v}, \cdot)$}
+      \State \Return $\msg{mint}{\pk, v}$
+    \Else
+      ~\Return $\bot$
+    \EndIf
+  \EndFunction
+\end{algorithmic}
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../../main"
+%%% End:

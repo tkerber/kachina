@@ -1,0 +1,94 @@
+Distributed ledgers put forth a new paradigm for deploying online services
+beyond the classical client-server model. In this new model, it is no
+longer the responsibility of a single organization or a small consortium of
+organizations to provide the platform for deploying relevant business
+logic.
+Instead, services can take advantage of decentralized, ``trustless'' computation
+to improve their transparency and security as well as reduce the need for
+trusted third parties and intermediaries.
+
+\sloppy
+Bitcoin~\cite{bitcoin}, the first successfully deployed distributed ledger protocol, 
+ does not lend itself easily to the implementation of arbitrary 
+ protocol logic that can support this paradigm.  
+This led to many adaptations of the basic protocol for specific applications, such as NameCoin~\cite{namecoin}, a distributed domain
+registration protocol, or Bitmessage~\cite{bitmessage}, a ledger-based communications
+protocol. An obvious problem with this approach
+is that, even though the Bitcoin
+source code can be copied arbitrarily often, the Bitcoin community of software
+developers and miners cannot, and hence such systems are typically
+not sustainable. 
+Smart contracts, originally posited as a form of reactive
+computation~\cite{szabo1997formalizing}, were popularized by
+Ethereum~\cite{ethereum}, solving these problems
+by providing a uniform and standardized approach for deploying decentralized
+computation over the same back-end infrastructure.
+
+\fussy
+
+Smart contract systems rely on a form of \emph{state-machine
+  replication}~\cite{statemachinereplication}: All nodes involved in
+maintaining the smart contract keep a local copy of its state, and advance this copy
+with a sequence of requests. This sequence of requests needs to match for each
+node in the system -- thus the need for consensus over which requests are made,
+and their order. In practice, this is achieved through a distributed ledger.
+
+A seemingly inherent limitation of the decentralized computation paradigm is the 
+fact that protocol logic deployed as a smart contract has to be completely
+non-private. This, naturally, is a major drawback for many
+of the applications that can potentially take advantage of smart contracts. 
+Promising cryptographic techniques for lifting this limitation
+are zero-knowledge proofs~\cite{STOC:GolMicRac85}, and
+secure-computation~\cite{STOC:GolMicWig87,Canetti02universallycomposable}.
+Motivated by such cryptographic techniques, 
+systems satisfying various definitions of privacy -- and requiring
+various trust assumptions -- have been
+proposed~\cite{zexe,SP:KMSWP16,enigmapaper,USENIX:KGCWF18}, as we detail in
+\autoref{sec:relatedwork}. Their reliance on 
+trust assumptions nevertheless fundamentally 
+limits the level of decentralization which they can achieve, especially
+  compared to their non-private
+counterparts. 
+For instance, a common restriction of such systems is to
+assume a small, fixed set of participants at the core of the system.
+This fundamentally clashes with the basic principles of a decentralized platform
+like Bitcoin or Ethereum (collectively classified as {\em Nakamoto
+  consensus}). In these systems, the set of parties maintaining the system 
+can be arbitrarily large and independent of all platform performance parameters. 
+This puts forth the following fundamental question that is the main motivation for our work. 
+
+\begin{quote}\itshape
+Is it feasible to achieve a \textbf{privacy-preserving} and \textbf{general-purpose}  
+smart contract functionality under the same availability and decentralization 
+characteristics exhibited by Nakamoto consensus? 
+\end{quote}
+
+In this work we carve out a large class of distributed computations that we
+express as smart contracts, which we collectively refer to as ``\kachina\ core
+contracts''. In particular, this includes contracts with privacy guarantees,
+which can be implemented without additional trust assumptions beyond what is
+assumed for Nakamoto consensus and the existence of a securely generated common
+reference string.
+The latter is not
+an assumption to be taken lightly -- however it is a common requirement for
+privacy-preserving blockchain protocols with strong cryptographic privacy
+guarantees, and can be reduced to the same assumptions as the distributed
+  consensus algorithm itself~\cite{pistis}. This
+class allows us to express the protocol logic of dedicated privacy-preserving,
+ledger-based protocols such as Zerocash~\cite{SP:BCGGMT14} as smart contracts.
+Existing smart contract systems such as Zexe~\cite{zexe},
+Hawk \cite{SP:KMSWP16}, Zether~\cite{zether}, Enigma~\cite{enigmapaper},
+zkay~\cite{CCS:SBGMTV19}, and
+Arbitrum~\cite{USENIX:KGCWF18} can be expressed, preserving their privacy
+guarantees, as \kachina\ contracts. These protocols mainly rely on either
+\emph{zero-knowledge} or \emph{signature authentication} for their security.
+\kachina\ is flexible enough to allow contract authors to
+express each of these systems, together with a concise description of the privacy
+they afford. It does not supersede these protocols, but rather gives
+ a common foundation on which one can build further privacy-preserving
+systems.
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:

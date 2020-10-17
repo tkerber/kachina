@@ -1,0 +1,15 @@
+\subsection{The Simulator}
+\label{sec:simulator}
+
+The simulator for $\kachina$ has fairly little work to do. It creates simulated
+transactions by creating a simulated NIZK proof, and attaching it to the leakage
+$x$. Secondly, when presented with an unknown transaction, and, asked for the
+corresponding input, it attempts to extract the input from the simulated
+zero-knowledge functionality.
+
+\subimport*{../uc/sim/}{kachina}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:

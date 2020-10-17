@@ -1,0 +1,17 @@
+\begin{functionality}{$\gperfectledger$}
+    The perfect ledger is strictly \emph{more} powerful than actual ledger
+    implementations.%
+    \begin{statedecl}
+        \statevar{\ledgerstate}{\epsilon}{Authoritative ledger state}
+    \end{statedecl}
+    \begin{receive}{submit}{\tx}
+        \State \Let $\ledgerstate \gets \ledgerstate \concat \tx$
+    \end{receive}
+    \begin{receive}{read}{}
+        \State \Return $\ledgerstate$
+    \end{receive}
+\end{functionality}
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../../main"
+%%% End:

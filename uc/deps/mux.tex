@@ -1,0 +1,16 @@
+\begin{algorithmic}
+  \Function{$\vn{dep}_{\vn{mux}}$}{$X, \transcript_\rho, z$}
+    \If{$\transcript_\rho = \epsilon$}
+      \Return $\varnothing$
+    \Else
+      \State \Let $(i, \transcript_\rho') \gets \vn{unmuxPrivOracle}(\transcript_\rho)$
+      \State \Let $X' \gets \vn{unmuxX}_{\vn{mux}}(X, i); z' \gets
+        \vn{unmuxZ}_{\vn{mux}}(z, i)$
+      \State \Return $\vn{dep}_i(X', \transcript_\rho', z')$
+    \EndIf
+  \EndFunction
+\end{algorithmic}
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../../main"
+%%% End:

@@ -1,0 +1,67 @@
+\begin{transitionfn}{$\tnsfnkachina_{\vn{loopmux}}$}
+  The multiplexing with registration and loopback transition function
+  $\tnsfnkachina_{\vn{loopmux}}$ allows addressing any pair of address and
+  sub-transition function $(A, \tnsfnkachina)$. These sub-transition functions may,
+  return values of either $\msg{call}{A, M}$, or $\msg{return}{y}$. In the
+  former case, a different sub-transition function is invoked, and the value it
+  eventually returns is fed back into the original one, by re-invoking it with
+  $\msg{resume}{y}$.
+
+  \begin{pubstatedecl}
+    \statevar{\Sigma}{\varnothing}{Mapping from address pairs to public states}
+  \end{pubstatedecl}%
+  \vspace{-1em}
+  \begin{privstatedecl}
+    \statevar{\Rho}{\varnothing}{Mapping from address pairs to private states}
+  \end{privstatedecl}
+
+  \begin{receiveinput*}{$(A = (i, \tnsfnkachina, \vn{desc}, \vn{dep}), w)$}
+    \State \Let $\oracle_\sigma' \gets \lambda q :
+      \oracle_\sigma(\vn{muxPubOracle}(A, q))$
+    \State \Let $\oracle_\rho' \gets \lambda q :
+      \oracle_\rho(\vn{muxPrivOracle}(A, q))$
+    \Repeat
+      \State \Let $y \gets \tnsfnkachina_{\oracle_\sigma', \oracle_\rho'}(w)$
+      \If{$\exists A', M : y = \msg{call}{A', M}$}
+        \State \Let $w \gets
+          \msg{resume}{\tnsfnkachina_{\vn{loopmux},\oracle_\sigma,\oracle_\rho}((A', M))}$
+      \EndIf
+    \Until{$\exists y' : y = \msg{return}{y'}$}
+    \State \Return $y'$
+  \end{receiveinput*}
+
+  \begin{helpers}
+    \Function{$\vn{muxPubOracle}$}{$A, q, \sigma, \varnothing$}
+      \If{$A \notin \sigma.\Sigma$}
+        \Let $\sigma.\Sigma(A) \gets \varnothing$
+      \EndIf
+      \State \Let $\sigma' \gets \sigma.\Sigma(A)$
+      \State \Let $(\sigma', y) \gets q(\sigma', \varnothing)$
+      \If{$\sigma' = \bot$}
+        \Return $(\bot, y)$
+      \Else
+        \State \Let $\sigma.\Sigma(A) \gets \sigma'$
+        \State \Return $(\sigma, y)$
+      \EndIf
+    \EndFunction
+    \Function{$\vn{muxPrivOracle}$}{$A, q, \rho, z$}
+      \State \Let $z' \gets \vn{unmuxZ}_{\vn{loopmux}}(z, A)$
+      \If{$A \notin \rho.\Rho$}
+        \Let $\rho.\Rho(A) \gets \varnothing$
+      \EndIf
+      \State \Let $\rho' \gets \rho.\Rho(A)$
+      \State \Let $(\rho', y) \gets q(\rho', z')$
+      \If{$\rho' = \bot$}
+        \Return $(\bot, y)$
+      \Else
+        \State \Let $\rho.\Rho(A) \gets \rho'$
+        \State \Return $(\rho, y)$
+      \EndIf
+    \EndFunction
+  \end{helpers}
+\end{transitionfn}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../../main"
+%%% End:

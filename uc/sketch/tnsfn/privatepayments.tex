@@ -1,0 +1,33 @@
+\begin{transitionfnsketch}{$\tnsfn_{\mathsf{pp}}$}
+  The state transition function for a private payments system. Parties have
+  associated public keys and balances. Parties may generate a public key,
+  transfer and mint single-denomination coin, and query their balance.
+
+  \vsep
+
+  \begin{receiveinputsketch*}{$(\jointstate, \party, \msg{init}{}, \cdot, \pk)$}
+    Assert $\party$'s public key is not set, and ensure $\pk$ is unique. Record
+    $\pk$ as $\party$'s public key, and return it.
+  \end{receiveinputsketch*}
+
+  \begin{receiveinputsketch*}{$(\jointstate, \party, \msg{send}{\pk}, \cdot, a)$}
+    If $\party$ is honest, spend from their associated public key. If not, spend
+    from the public key $a$, provided it is not honestly owned. Decrease the
+    spending key's balance by one, asserting it is non-negative. Increase $\pk$'s
+    balance by 1.
+  \end{receiveinputsketch*}
+
+  \begin{receiveinputsketch*}{$(\jointstate, \party, \msg{mint}{}, \pk, \cdot)$}
+    Increase $\pk$'s balance by 1.
+  \end{receiveinputsketch*}
+
+  \begin{receiveinputsketch*}{$(\jointstate, \party, \msg{balance}{}, B, \cdot)$}
+    Return the balance $B$.
+  \end{receiveinputsketch*}
+
+\end{transitionfnsketch}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../../../main"
+%%% End:

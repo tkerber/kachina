@@ -1,0 +1,151 @@
+\section{UC Conventions}
+\label{sec:conventions}
+
+This paper is modeled and proven in the Universal Composability Framework
+\cite{FOCS:Canetti01}, with global functionalities~\cite{TCC:CDPW07}. Although
+we assume a basic familiarity with these concepts from the reader, the style of
+writing UC protocols and functionalities may differ greatly from author to
+author. As a result potentially important corner cases may be overlooked, as the
+exact behavior of a given functionality is sometimes unclear. We adopt a more
+explicit style (at least in our full functionalities), while at the same time
+attempting to avoid writing unnecessary information in the definition of the
+functionalities. While the proofs, protocols and functionalities can be read and
+understood without explicit knowledge of the notation described in this section,
+we define what behavior our notation leaves implicit in this section. Further, we
+introduce some notations used throughout the paper that simplify our code,
+however which are unrelated to UC.
+
+\paragraph{Flow of execution}
+
+Session identifiers are formally used in UC to shield a protocol from external
+calls, except when allowed by the control function. While they are effectively a
+technical detail of the description in UC, they are often replicated in the
+description of functionalities and protocols. We leave all session identifiers
+implicit instead. In a similar vein, it is often a convention to replicate (part
+of) the input to a functionality when returning the result, to ensure that it is
+clear which
+query is being answered. We omit this as well, in favor of simply
+stating the actual value returned. Both of these are how a protocol would be
+written in a channel-based communications model, such as that of~\cite{cc}, rather
+than the tape-based model of UC itself.
+
+When a functionality is processing something, it is always processing \emph{on
+  behalf of some party}, which may be the adversary itself, or may be corrupted.
+Likewise when a protocol is processing something, it is processing this \emph{on
+  behalf of its owning party}. When a functionality or protocol hands off
+execution to another entity, by making a query to another functionality, or the
+adversary, execution \emph{for this party} is suspended, and resumes only when
+the query returns. Attempts by the environment to make queries to a suspended
+protocol will be ignored. Likewise, if the environment attempts to query a
+functionality with a party which is currently suspended, the query will also be
+ignored. Crucially, the environment may still query a functionality with
+\emph{another party} while one is suspended, ensuring that parties may still act
+concurrently. We observe that this behaves equally in protocols and
+functionalities, as the functionality is suspended in the same situation is the
+corresponding party's protocol is suspended. Finally, we assume that queries
+will eventually return -- this is equivalent to queries which do not return, as
+we allow the environment and adversary to hold off indefinitely until returning.
+While this is possible, in practice, due to the implicit suspension mechanism
+described above, this means disabling a party permanently.
+
+This above mechanism is not a great deviation from UC -- it can easily be
+implemented by having a functionality or protocol record locally the suspension,
+and reject new queries from the suspended party until it receives an input of a
+specified form. We simply omit this mechanism when writing our protocols.
+Something similar is in fact necessary for our security, as parties could
+otherwise easily shoot themselves in the foot by concurrently creating
+conflicting transactions. Responsive environments~\cite{AC:CEKKR16} are a
+strictly stronger form of this idea.
+
+We assume the existence of a set of all parties $\parties$, of which there is a
+subset of honest parties $\honest \subseteq \parties$. We assume $\honest \neq
+\varnothing$. Correspondingly, the set of corrupted parties is $\parties
+\setminus \honest$. In this paper, static corruption is assumed, and all
+functionalities are assumed to have knowledge of these sets. Real world
+protocols, when they interact with these sets, will assume that, if the party
+running them is $\party$, $\parties = \honest = \{\party\}$.
+
+As a slight note, we use a somewhat unconventional model of having multiple
+functionalities interacting with each other in the ideal world. This is largely
+to avoid monolithic functionality design, using composition as a software design
+primitive, rather than a security one.
+
+\paragraph{Notation}
+
+In terms of notation, we will explicitly declare and initialize all state
+variables of functionalities and protocols, to make formal statements about them
+more precise. For the same reason, the behavior of functionalities and
+protocols is described via detailed pseudocode, instead of text. Most of the
+notation is self-explanatory, however adversarial queries are not. As the
+adversary may respond arbitrarily to queries, we include with each query a
+well-formedness condition, and a fallback distribution. In particular, we write
+\QueryAdv[y][P][D]{$x$}{} to mean the following: Send $x$ to $\adversary$, then
+wait for the response $y$. If $P(y)$ does not hold, instead randomly sample $y$
+from $D$. This allows us to ensure responses are well-formed, while avoiding the
+common technique of aborting in the ideal world on receiving unexpected input,
+something we try to avoid, as it effectively permits denial-of-service in the
+``ideal'' world. Finally, we use the period (``$.$'') as a membership access
+operator, to talk about variables of simulated functionalities, or in the proof,
+to talk about state variables of various functionalities and protocol instances.
+For instance, we write $\funct{}.X$ to mean the state variable $X$ within the
+(possibly simulated) functionality $\funct{}$.
+
+\paragraph{Functional Programming Constructs}
+
+Besides understanding the message passing mechanics of UC, we assume only the
+basic programming knowledge needed to read pseudo-code. We sometimes use
+functional programming expressions, including the following for precision:
+
+\begin{itemize}
+  \item Lambda expressions:\\ $(\lambda x : 2x)(2) = 4$
+  \item List and tuple literals:\\ $[1, 2]$, and $(1, 2)$.
+  \item The higher-order function $\vn{filter}$:\\ $\vn{filter}(\lambda x: x
+    \equiv 0 \mod 2, [1, 2]) = [2]$
+\end{itemize}
+
+We interpret maps as functions from keys to values. The symbols $\bot$ and
+$\varnothing$ are overloaded, with the former representing both
+``false'', and ``error/abort'', while the latter represents the empty set, empty
+map, and in the case of contract states, the initial state (which the contract
+itself may ascribe a different format to). Further, for a map $M$, we will write
+$k \in M$ to mean that the map contains the key $k$. A key is not in the map iff
+$M(k) \eqdef \bot$. For lists, we use $\epsilon$ to denote the empty list, and
+$\concat$ to denote list concatenation. Single non-list items can be interpreted
+as a singleton list.
+
+We will use the following functions throughout the paper. $\vn{prefix}(L, x)$
+returns the shortest prefix of $L$ containing $x$, or $L$ itself, if not such
+prefix exists. $\vn{idx}(L, x)$ returns the index of the first occurrence of $x$
+in $L$, or $\bot$ if $x \notin L$.
+
+\begin{algorithmic}
+  \Function{$\vn{prefix}$}{$L, x$}
+    \State \Let $L' \gets \epsilon$
+    \For{$y \loopin L$}
+      \State $L' \gets L' \concat y$
+      \If{$y = x$}
+        \textbf{break}
+      \EndIf
+    \EndFor
+    \State \Return $L'$
+  \EndFunction
+  \Function{$\vn{idx}$}{$L, x$}
+    \State \Let $i \gets 0$
+    \For{$y \loopin L$}
+      \If{$y = x$}
+        \Return $i$
+      \EndIf
+      \State \Let $i \gets i + 1$
+    \EndFor
+    \State \Return $\bot$
+  \EndFunction
+\end{algorithmic}
+
+\noindent
+Finally, we write $a \prec b$ for the list prefix relation, where we assume
+reflexivity.
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "main"
+%%% End:

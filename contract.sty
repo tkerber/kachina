@@ -1,0 +1,38 @@
+\RequirePackage[uc]{crypto}
+\newcommand{\tnsfn}{\Delta}
+\newcommand{\tnsfnkachina}{\Gamma}
+\newcommand{\runtnsfn}{\vn{run\textsf{-}}\Gamma}
+\newcommand{\lkgfn}{\Lambda}
+\newcommand{\jointstate}{\phi}
+\newcommand{\arbstate}{\alpha}
+\newcommand{\partstate}[1]{\vec{\boldsymbol{#1}}}
+\newcommand{\partyview}{\omega}
+\newcryptosystem{transitionfn}{Transition Function}
+\newcryptosystem[sketch]{transitionfnsketch}{Transition Function}
+\newcryptosystem{leakagefn}{Leakage Function}
+\newcryptosystem[sketch]{leakagefnsketch}{Leakage Function}
+\newenvironment{pubstatedecl}{\genericstatedecl{Public state variables and initialization values}}{\endgenericstatedecl}
+\newenvironment{privstatedecl}{\genericstatedecl{Private state variables and initialization values}}{\endgenericstatedecl}
+\newenvironment{receiveinputsketch*}[1]{\par\noindent\emph{When receiving an input #1:}\par}{}
+\newenvironment{receiveinputsketch}[2]{\begin{receiveinputsketch*}{$\smallmsg{#1}{#2}$}}{\end{receiveinputsketch*}}
+\newenvironment{receiveinput*}[1]{\par\noindent\emph{When receiving an input #1:}
+  \begin{algorithmic}}
+  {\end{algorithmic}}
+\newenvironment{receiveinput}[2]{\begin{receiveinput*}{$\smallmsg{#1}{#2}$}}{\end{receiveinput*}}
+\newenvironment{receivequerysketch*}[2]{\par\noindent\emph{When receiving an #1 oracle
+    query #2:}\par}{}
+\newenvironment{receivequerysketch}[3]{\begin{receivequerysketch*}{#1}{$\smallmsg{#2}{#3}$}}{\end{receivequerysketch*}}
+\newenvironment{receivequery*}[2]{\par\noindent\emph{When receiving an #1 oracle
+    query #2:}
+  \begin{algorithmic}}
+  {\end{algorithmic}}
+\newenvironment{receivequery}[3]{\begin{receivequery*}{#1}{$\smallmsg{#2}{#3}$}}{\end{receivequery*}}
+\ifcrypto@diff
+  \renewcommand{\mkpriv}{}
+  \renewcommand{\mkpub}{}
+  \renewcommand{\mknorm}{}
+\else
+  \newcommand{\mkpub}{\color{Green}}
+  \newcommand{\mkpriv}{\color{Red}}
+  \newcommand{\mknorm}{\color{black}}
+\fi

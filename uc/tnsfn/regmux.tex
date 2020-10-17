@@ -1,0 +1,61 @@
+\begin{transitionfn}{$\tnsfnkachina_{\vn{regmux}}$}
+  The multiplexing with registration transition function
+  $\tnsfnkachina_{\vn{regmux}}$ allows addressing any pair of address and
+  sub-transition function $(A, \tnsfnkachina)$. It uses the specified transition
+  function on whatever state is associated with this pair, or a new, empty state
+  for the first use.
+
+  \begin{pubstatedecl}
+    \statevar{\Sigma}{\varnothing}{Mapping from address pairs to public states}
+  \end{pubstatedecl}%
+  \vspace{-1em}
+  \begin{privstatedecl}
+    \statevar{\Rho}{\varnothing}{Mapping from address pairs to private states}
+  \end{privstatedecl}
+
+  \begin{receiveinput*}{$(A = (i, \tnsfnkachina, \vn{desc}, \vn{dep}), w)$}
+    \State \Let $\oracle_\sigma' \gets \lambda q :
+      \oracle_\sigma(\vn{muxPubOracle}(A, q))$
+    \State \Let $\oracle_\rho' \gets \lambda q :
+      \oracle_\rho(\vn{muxPrivOracle}(A, q))$
+    \State \Return $\tnsfnkachina_{\oracle_\sigma', \oracle_\rho'}(w)$
+  \end{receiveinput*}
+
+  \begin{helpers}
+    \Function{$\vn{muxPubOracle}$}{$A, q, \sigma, \varnothing$}
+      \If{$A \notin \sigma.\Sigma$}
+        \Let $\sigma.\Sigma(A) \gets \varnothing$
+      \EndIf
+      \State \Let $\sigma' \gets \sigma.\Sigma(A)$
+      \State \Let $(\sigma', y) \gets q(\sigma', \varnothing)$
+      \If{$\sigma' = \bot$}
+        \Return $(\bot, y)$
+      \Else
+        \State \Let $\sigma.\Sigma(A) \gets \sigma'$
+        \State \Return $(\sigma, y)$
+      \EndIf
+    \EndFunction
+    \Function{$\vn{muxPrivOracle}$}{$A, q, \rho, (\sigma^o, \rho^o,
+        \sigma^\pi, \rho^\pi, \eta)$}
+      \SplitState{\Let $(\rho.\Rho, \sigma^o.\Sigma. \rho^o.\Rho, \sigma^\pi.\Sigma,
+        \rho^\pi.\Rho) \gets\vn{forceInitMaps}($\splitstatebreak$(\rho.\Rho,
+        \sigma^o.\Sigma, \rho^o.\Rho, \sigma^\pi.\Sigma, \rho^\pi.\Rho), A,
+        \varnothing)$}
+      \State \Let $\rho' \gets \rho.\Rho(A)$
+      \State \Let $z' \gets (\sigma^o.\sigma_i, \rho^o.\rho_i,
+        \sigma^\pi.\sigma_i, \rho^\pi.\rho_i, \eta)$
+      \State \Let $(\rho', y) \gets q(\rho', z')$
+      \If{$\rho' = \bot$}
+        \Return $(\bot, y)$
+      \Else
+        \State \Let $\rho.\Rho(A) \gets \rho'$
+        \State \Return $(\rho, y)$
+      \EndIf
+    \EndFunction
+  \end{helpers}
+\end{transitionfn}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../../main"
+%%% End:

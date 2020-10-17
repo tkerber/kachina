@@ -1,0 +1,26 @@
+As mentioned in \autoref{sec:overview}, a naive construction divides a
+contract's state into a shared public state, and a local private states for each
+party. Specifically, the ideal state $\jointstate$ is defined as the tuple
+$(\sigma, \boldsymbol\rho)$, where $\boldsymbol\rho$ consists of $\rho_\party$
+for each party $\party$. A user proves the validity of any public state
+transition -- that there exists a private state and input, such that this
+transition takes place. This clearly does not scale well, as it assumes that the
+ledger state does not change between the submission and processing of a
+transaction, and requires zero-knowledge proofs about potentially large states
+-- hundreds of Gigabytes in systems like Ethereum~\cite{ethersize}!
+
+In reality, a user's query may not be evaluated immediately, and the ledger may
+change drastically in the meantime. Simply proving a direct state transition
+would lead to a high proportion of queries being rejected. 
+To solve both problems, we require contracts to access their state through a
+layer of abstraction which both tolerates reordering interactions, and allows
+for more efficient proofs. We further allow for partial transaction
+  success, by introducing \emph{transaction checkpoints}. Our primary purpose
+  for this notion is to be able to capture the payment of transaction fees, such
+  as gas. We detail our approach to do this in
+  \iffull\autoref{sec:fees}\else\cite[Appendix~J.5]{fullversion}\fi.
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:

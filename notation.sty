@@ -1,0 +1,60 @@
+% Generic
+\newcommand{\pk}{\vn{pk}}
+\newcommand{\sk}{\vn{sk}}
+\newcommand{\lang}{\mathcal{L}}
+\newcommand{\nizkproof}{\pi}
+\newcommand{\ledgerstate}{\Sigma}
+\newcommand{\prf}{\vn{prf}}
+\newcommand{\sn}{\vn{sn}}
+\newcommand{\cm}{\vn{cm}}
+\newcommand{\comm}{\vn{comm}}
+\newcommand{\tx}{\tau}
+\newcommand{\txid}{\mathsf{txid}}
+
+% Kachina
+\newcommand{\kachinaname}{Kachina}
+\newcommand{\kachina}{{\text{\rmfamily\scshape\kachinaname}}}
+\newcommand{\ankachina}{a \kachina}
+\newcommand{\kachinaes}{\kachina's}
+\newcommand{\contractclass}[1]{\mathbb{C}_{#1}}
+\newcommand{\classkachina}{\contractclass{\kachina}}
+\newcommand{\oracle}{\mathcal{O}}
+\newcommand{\transcript}{\mathcal{T}}
+\newcommand{\utm}{\mathcal{U}}
+\newcommand{\decomm}{\mathsf{decomm}}
+\newcommand{\tnsfnmainkachina}{\tnsfn_{\kachina}}
+\newcommand{\lkgfnmainkachina}{\lkgfn_{\kachina}}
+\newcommand{\confirmations}{\vec{\boldsymbol c}}
+\newcommand{\splittranscript}{\vec{\boldsymbol\transcript}}
+\newcommand{\partresults}{\vec{\boldsymbol y}}
+
+% UC names
+\newcommand{\gledger}{{\gfunct{ledger}}}
+\newcommand{\gsimpleledger}{{\gfunct{simpleLedger}}}
+\newcommand{\gdelayledger}[1][\delay]{{\gfunct{delayLedger}^{#1}}}
+\newcommand{\gperfectledger}{{\gfunct{perfectLedger}}}
+\newcommand{\gl}{\gfunct{L}}
+\newcommand{\gclock}{{\gfunct{clock}}}
+\newcommand{\fsc}[1][\tnsfn,\lkgfn]{\funct{sc}^{#1}}
+\newcommand{\fnizk}[1][\lang]{\funct{nizk}^{#1}}
+\newcommand{\fnizkr}{\fnizk[\lang,r]}
+\newcommand{\delay}{\delta}
+\newcommand{\proofs}{{\Pi}}
+\newcommand{\disproofs}{{\overline{\Pi}}}
+\newcommand{\Rho}{P}
+\newcommand{\costmodel}{\boldsymbol\$}
+\newcommand{\tnsfncostmodel}{\costmodel_{\vn{zk}}}
+\newcommand{\oraclecostmodel}{\costmodel_{\vn{std}}}
+\newcommand{\oraclecostmodelest}{{\mathrm E}_{\vn{std}}}
+
+% Misc
+\def\btc{%
+  \leavevmode
+  \vtop{\offinterlineskip %\bfseries
+    \setbox0=\hbox{B}%
+    \setbox2=\hbox to\wd0{\hfil\hskip-.03em
+    \vrule height .3ex width .15ex\hskip .08em
+    \vrule height .3ex width .15ex\hfil}
+    \vbox{\copy2\box0}\box2}}
+\newcommand{\eoe}{{\color[RGB]{204,36,29}\vspace{.5em}\hrule\vspace{.2em}\hrule\hrule\vspace{.2em}\hrule\vspace{.5em}}}
+

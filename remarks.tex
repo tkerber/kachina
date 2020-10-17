@@ -1,0 +1,34 @@
+\section{Conclusion}
+
+We have shown in this paper how to build a large class of smart contracts with
+only zero-knowledge and distributed ledgers, and outline how this can be used
+and extended upon. To do so we have modeled formally what smart contracts with
+privacy are, represented as a state transition function that is fed inputs from
+a ledger, and a leakage function that decides what parts of the input are
+visible on this ledger. We have then defined which class of such contracts we
+will consider in this paper, and presented a protocol, $\kachina$, to construct
+them. This protocol utilizes
+non-interactive zero-knowledge proofs and state oracles to achieve the desired
+smart contract behavior while leaking only part of the computation performed.
+
+While the designs are largely theoretical and detached from any actual
+implementation, we stress that they were designed with real-life constraints in
+mind: The use of state oracles allows moving most computationally hard, or
+storage intensive operations outside of the NIZK itself, reducing their cost.
+While the NIZK must still be universal, zero-knowledge constructions with
+universal reference strings exist~\cite{CCS:MBKM19}, and are practical to use in our
+setting, although they have not yet been proven in the UC model.
+
+In ending this paper, we would like to make clear that this problem space is by
+no means solved. We have shown how to realize a specific class of
+privacy-preserving smart contracts, however privacy is not such a simple issue
+to be addressed by a single paper. In \iffull\autoref{sec:metaparties}\else\cite[Appendix~I]{fullversion}\fi, we sketch
+the relation of trust models with privacy, and we believe this taxonomy of
+trust, and how each level can be addressed, formalized, and brought into a
+unified model, is a crucial long-term research question for providing meaningful
+privacy to smart contract systems.
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "main"
+%%% End:

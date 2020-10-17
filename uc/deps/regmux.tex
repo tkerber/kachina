@@ -1,0 +1,34 @@
+\begin{algorithmic}
+  \Function{$\vn{dep}_{\vn{regmux}}$}{$X, \transcript_\rho, (\sigma^o,
+    \rho^o, \sigma^\pi, \rho^\pi, \eta)$}
+    \If{$\transcript_\rho = \epsilon$}
+      \Return $\varnothing$
+    \Else
+      \State \Let $(A = (\ldots, \vn{dep}), \transcript_\rho') \gets \vn{unmuxPrivOracle}(\transcript_\rho)$
+      \SplitState{\Let $(\sigma^o.\Sigma. \rho^o.\Rho, \sigma^\pi.\Sigma,
+        \rho^\pi.\Rho) \gets$ \splitstatebreak
+        $\vn{forceInitMaps}((\sigma^o.\Sigma, \rho^o.\Rho, \sigma^\pi.\Sigma,
+        \rho^\pi.\Rho), A, \varnothing)$}
+      \State \Let $z' \gets (\sigma^o.\Sigma(A), \rho^o.\Rho(A),
+        \sigma^\pi.\Sigma(A), \rho^\pi.\Rho(A), \eta)$
+      \State \Let $X' \gets \epsilon$
+      \For{$(u, \transcript_\rho, (\sigma^o, \rho^o, \sigma^\pi, \rho^\pi, \eta), D) \loopin X$}
+        \If{$\exists \transcript_\rho' : \vn{unmuxPrivOracle}(\transcript_\rho)
+            = (A, \transcript_\rho')$}
+          \SplitState{\Let $(\sigma^o.\Sigma. \rho^o.\Rho, \sigma^\pi.\Sigma,
+            \rho^\pi.\Rho) \gets
+            \vn{forceInitMaps}($\splitstatebreak$(\sigma^o.\Sigma, \rho^o.\Rho, \sigma^\pi.\Sigma,
+            \rho^\pi.\Rho), A, \varnothing)$}
+          \SplitState{\Let $X' \gets X' \concat$\splitstatebreak$ (u, \transcript_\rho',
+            (\sigma^o.\sigma_i, \rho^o.\rho_i, \sigma^\pi.\sigma_i,
+            \rho^\pi.\rho_i, \eta), D)$}
+        \EndIf
+      \EndFor
+      \State \Return $\vn{dep}(X', \transcript_\rho', z')$
+    \EndIf
+  \EndFunction
+\end{algorithmic}
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../../main"
+%%% End:

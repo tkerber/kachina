@@ -1,0 +1,51 @@
+\begin{transitionfn}{$\tnsfnkachina_{\vn{mux}}$}
+  The multiplexing transition function $\tnsfnkachina_{\vn{mux}}$ is parameterized
+  by $n$ transition functions $\tnsfnkachina_1, \ldots, \tnsfnkachina_n$, and allows a
+  users to address any one of them.
+
+  \begin{pubstatedecl}
+    \statevar{\sigma_i}{\varnothing}{Public states for each sub-contract}
+  \end{pubstatedecl}%
+  \vspace{-1em}
+  \begin{privstatedecl}
+    \statevar{\rho_i}{\varnothing}{Private states for each sub-contract}
+  \end{privstatedecl}
+
+  \begin{receiveinput*}{$(i, w)$}
+    \State \Assert $i \in \mathbb{Z}_n$
+    \State \Let $\oracle_\sigma' \gets \lambda q : \oracle_\sigma(\vn{muxPubOracle}(i, q))$
+    \State \Let $\oracle_\rho' \gets \lambda q : \oracle_\rho(\vn{muxPrivOracle}(i, q))$
+    \State \Return $\tnsfnkachina_{i, \oracle_\sigma',
+      \oracle_\rho'}(w)$
+  \end{receiveinput*}
+
+  \begin{helpers}
+    \Function{$\vn{muxPubOracle}$}{$i, q, \sigma, \varnothing$}
+      \State \Let $\sigma' \gets \sigma.\sigma_i$
+      \State \Let $(\sigma', y) \gets q(\sigma', \varnothing)$
+      \If{$\sigma' = \bot$}
+        \Return $(\bot, y)$
+      \Else
+        \State \Let $\sigma.\sigma_i \gets \sigma'$
+        \State \Return $(\sigma, y)$
+      \EndIf
+    \EndFunction
+    \Function{$\vn{muxPrivOracle}$}{$i, q, \rho, (\sigma^o, \rho^o, \sigma^\pi,
+      \rho^\pi, \eta)$}
+      \State \Let $\rho' \gets \rho.\rho_i$
+      \State \Let $z' \gets (\sigma^o.\sigma_i, \rho^o.\rho_i,
+        \sigma^\pi.\sigma_i, \rho^\pi.\rho_i, \eta)$
+      \State \Let $(\rho', y) \gets q(\rho', z')$
+      \If{$\rho' = \bot$}
+        \Return $(\bot, y)$
+      \Else
+        \State \Let $\rho.\rho_i \gets \rho'$
+        \State \Return $(\rho, y)$
+      \EndIf
+    \EndFunction
+  \end{helpers}
+\end{transitionfn}
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../../main"
+%%% End:

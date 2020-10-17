@@ -1,0 +1,56 @@
+\begin{transitionfn}{$\tnsfn_{\mathsf{pp}}$}
+  The state transition function for a private payments system. Parties have
+  associated public keys, and balances. The payments system allows for parties
+  without a public key to generate one, and for parties to transfer and mint
+  single-denomination coins, as well as query their own balance.
+
+  \begin{statedecl}
+    \statevar{K}{\varnothing}{Mapping of parties to public keys}
+    \statevar{B}{\lambda \pk : 0}{Mapping of public keys to their
+      spendable coins}
+  \end{statedecl}
+
+  \begin{receiveinput*}{$(\jointstate, \party, \msg{init}{}, \cdot, \pk)$}
+    \If{$\jointstate.K(\party) = \bot$}
+      \While{$\exists \party' : \pk = \jointstate.K(\party') \lor \pk \in
+          \set{\varnothing, \bot}$}
+        \State \Let $\pk \samples \set{0,1}^\secparam$
+      \EndWhile
+      \State \Let $\jointstate.K(\party) \gets \pk$
+      \State \Return $(\jointstate, \top, \pk)$
+    \Else
+      \State \Return $(\bot, \bot, \bot)$
+    \EndIf
+  \end{receiveinput*}
+
+  \begin{receiveinput*}{$(\jointstate, \party, \msg{send}{\pk}, \cdot, a)$}
+    \If{$\party \notin \honest \land a \neq \varnothing$}
+      \State \Let $\pk' \gets a$
+      \State \Assert $\nexists \party' \in \honest : \pk' = \jointstate.K(\party')$
+    \ElsIf{$\jointstate.K(\party) \neq \bot$}
+      \Let $\pk' \gets \jointstate.K(\party)$
+    \Else
+      ~\Return $(\bot, \bot, \bot)$
+    \EndIf
+    \If{$\jointstate.B(\pk') > 0$}
+      \State \Let $\jointstate.B(\pk') \gets \jointstate.B(\pk') - 1$
+      \State \Let $\jointstate.B(\pk) \gets \jointstate.B(\pk) + 1$
+      \State \Return $(\jointstate, \top, \top)$
+    \Else
+      ~\Return $(\bot, \bot, \bot)$
+    \EndIf
+  \end{receiveinput*}
+
+  \begin{receiveinput*}{$(\jointstate, \party, \msg{mint}{}, \pk, \cdot)$}
+    \State \Let $\jointstate.B(\pk) \gets \jointstate.B(\pk) + 1$
+    \State \Return $(\jointstate, \top, \top)$
+  \end{receiveinput*}
+
+  \begin{receiveinput*}{$(\jointstate, \party, \msg{balance}{}, B, \cdot)$}
+    \State \Return $(\jointstate, \top, B)$
+  \end{receiveinput*}
+\end{transitionfn}
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../../main"
+%%% End:

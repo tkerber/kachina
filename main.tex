@@ -1,0 +1,52 @@
+\RequirePackage[llncs,uc,ae,publish]{crypto}
+\usepackage{packages}
+\usepackage{contract}
+\usepackage{notation}
+\graphicspath{{fig/}}
+\makeatletter
+\newif\iffull\fulltrue
+\makeatother
+\subimport*{./}{authorblock}
+\title{\kachina\ -- Foundations of Private Smart Contracts}
+
+\begin{document}
+\maketitle
+\todosum
+
+\begingroup
+\renewcommand\thefootnote{}%
+\footnote{The \LaTeX\ sources of this paper are available online at \url{https://github.com/tkerber/kachina}.}%
+\addtocounter{footnote}{-1}%
+\endgroup
+\subimport*{./}{abstract}
+\subimport*{intro/}{main}
+\subimport*{./}{overview}
+\subimport*{def/}{main}
+\subimport*{kachina/}{main}
+\subimport*{privatepayments/}{main}
+\subimport*{./}{remarks}
+\subimport*{./}{acknowledgements}
+
+\bibliography{cryptobib/abbrev3,cryptobib/crypto,misc}{}
+\bibliographystyle{plain}
+
+\iffull
+\startappendix
+\subimport*{./}{ucnotes}
+\subimport*{ledgers/}{basic}
+\subimport*{./}{fullfuncts}
+\subimport*{proof/}{main}
+\subimport*{privatepayments/}{proof}
+\subimport*{ledgers/}{liveness}
+\subimport*{./}{consistency}
+\subimport*{./}{nonatomic}
+\subimport*{./}{metaparties}
+\subimport*{system/}{main}
+\fi
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

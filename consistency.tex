@@ -1,0 +1,24 @@
+\section{Enforcing Private State Consistency}
+\label{sec:pstateconsistency}
+
+The protocol presented so far allows an adversary to arbitrarily set his own
+private state. Often it may be desirable to ensure that parties must follow the
+rules of the contract, even when it comes to the private state, however. This is
+possible, although it also introduces extra costs, and has the caveat of not
+functioning with nondeterminism.
+
+The core idea is to store commitments to private states within the public state
+of the contract. The contract itself can then verify that the private state is
+consistent with this commitment, update it, and then re-commit to the new state,
+proving the correctness of every step along the way. Clearly this adds more work
+to be verified about the contract, however a more worrying change is that again
+the contract needs to be able to process the entirety of the private contract
+state. Fortunately using slightly more complex updateable cryptographic
+datastructures, such as Merkle trees, can mitigate this problem -- although it
+cannot be eliminated entirely, as computation which aggregates the entire
+private state will still be as costly.
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "main"
+%%% End:

@@ -1,0 +1,134 @@
+\begin{transitionfn}{$\tnsfnkachina_{\vn{zc}}$}
+  The state transition function for a Zerocash-based token contract. In
+  \textcolor{Green}{green} are parts run in the public state oracle, in
+  \textcolor{Red}{red} are parts run in the private state oracle.
+
+  \begin{pubstatedecl}
+    \statevar{\vn{cms}}{\varnothing}{Public coin commitment set}
+    \statevar{\vn{sns}}{\varnothing}{Public serial number set}
+    \statevar{\vec{R}}{\epsilon}{Vector of commitment Merkle tree roots}
+    \statevar{\vec{M}}{\epsilon}{Vector of encrypted messages}
+  \end{pubstatedecl}%
+  \vspace{-1em}
+  \begin{privstatedecl}
+    \statevar{i}{0}{Index of $\vec{M}$ processed.}
+    \statevar{\vec{C}}{\epsilon}{Vector of coins available.}
+    \statevar{K_e}{\bot}{Encryption secret key.}
+    \statevar{K_z}{\bot}{Zero-knowledge secret key.}
+  \end{privstatedecl}
+
+  \begin{receiveinput}{init}{}
+    \mkpriv
+    \State \SendAndReceive{init}{}{\oracle_\rho}{\mknorm\pk\mkpriv}
+    \mknorm
+    \State \Return $\pk$
+  \end{receiveinput}
+
+  \begin{receiveinput}{send}{(\pk_z, \pk_e)}
+    \mkpriv
+    \SplitState{\SendAndReceive{send}{\mknorm\pk_e\mkpriv}{\oracle_\rho}{\mknorm(p, r, K_z, p', r', \vn{rt}, \vn{path}, M)\mkpriv}}
+    \mknorm
+    \SplitState{\Assert $\vn{path}$ is a valid Merkle tree path with root $\vn{rt}$,
+      to the element $\vn{comm}_r((\prf_{K_z}^{\pk}(1), p))$}
+    \State \Let $\vn{sn} \gets \prf_{K_z}^{\sn}((p, r))$
+    \State \Let $\vn{cm} \gets \vn{comm}_{r'}(pk_z, p')$
+    \mkpub
+    \State \Send{spend}{\mknorm\vn{sn}\mkpub, \mknorm\vn{rt}\mkpub}{\oracle_\sigma}
+    \State \Send{msg}{\mknorm M\mkpub}{\oracle_\sigma}
+    \State \Send{mint}{\mknorm\cm\mkpub}{\oracle_\sigma}
+    \mknorm
+    \State \Return $\top$
+  \end{receiveinput}
+
+  \begin{receiveinput}{mint}{}
+    \State \mkpriv \SendAndReceive{mint}{}{\oracle_\rho}{\mknorm\cm\mkpriv}
+    \State \mkpub \Send{mint}{\mknorm\cm\mkpub}{\oracle_\sigma}
+    \State \mknorm \Return $\top$
+  \end{receiveinput}
+
+  \begin{receiveinput}{balance}{}
+    \State \mkpriv \SendAndReceive{balance}{}{\oracle_\rho}{\mknorm B\mkpriv}
+    \State \mknorm \Return $B$
+  \end{receiveinput}
+  \vsep
+  \mkpriv
+  \begin{receivequery}{private}{init}{}
+    \State \Assert $\rho^\pi.K_e = \bot \land \rho^\pi.K_z = \bot$
+    \State \Let $\rho.K_z \samples \set{0, 1}^\secparam$
+    \State \Let $(\rho.K_e, \pk_e) \gets \vn{keyGen}(1^\secparam)$
+    \State \Return $(\vn{prf}_{\rho.K_z}^{\pk}(1), \pk_e)$
+  \end{receivequery}
+  
+  \begin{receivequery}{private}{send}{\pk_e}
+    \State \Let $\rho^o \gets \vn{update}(\rho^o, \sigma^o)$
+    \State \Let $\rho^\pi \gets \vn{update}(\rho^\pi, \sigma^\pi)$
+    \State \Let $\rho \gets \vn{update}(\rho, \sigma^\pi)$
+    \State \Assert $(\rho^o.\vec{C} \cap \rho^\pi.\vec{C}) \neq \epsilon$
+    \State \Let $(p, r) \gets (\rho^o.\vec{C} \cap \rho^\pi.\vec{C})[0]$
+    \State \Let $\rho.\vec{C} \gets \rho.\vec{C} \setminus \set{(p, r)}$
+    \State \Let $\vn{rt} \gets \vn{merkleroot}(\sigma^o.\vn{cms})$
+    \State \Let $\vn{path} \gets
+      \vn{merklepath}(\vn{comm}_r((\prf_{\rho^o.K_z}^{\pk}(1), p)),
+      \vn{rt})$
+    \State \Let $(p', r') \samples \set{0,1}^\secparam \times \set{0,1}^\secparam$
+    \State \Let $M \gets \vn{enc}((r', p'), \pk_e)$
+    \State \Let $K_z \mkpriv \gets \rho^o.K_z$
+    \State \Return $(p, r, \rho^o.K_z, p', r', \vn{rt}, \vn{path}, M)$
+  \end{receivequery}
+  
+  \begin{receivequery}{private}{mint}{}
+    \State \Assert $\rho^o.K_e \neq \bot \land \rho^o.K_z \neq \bot$
+    \State \Let $(p, r) \samples \set{0,1}^\secparam \times \set{0,1}^\secparam$
+    \State \Let $\cm \gets
+      \vn{comm}_r(\prf^{\vn{pk}}_{\rho^o.K_z}(1), p)$
+    \State \Let $\rho.\vec{C} \gets \rho.\vec{C} \concat (p, r)$
+    \State \Return $\cm$
+  \end{receivequery}
+
+  \begin{receivequery}{private}{balance}{}
+    \State \Let $\rho^o \gets \vn{update}(\rho^o, \sigma^o)$
+    \State \Let $\rho^\pi \gets \vn{update}(\rho^\pi, \sigma^\pi)$
+    \State \Return $|\rho^o.\vec{C} \cap \rho^\pi.\vec{C}|$
+  \end{receivequery}
+  \mknorm
+  \vsep
+  \mkpub
+  \begin{receivequery}{public}{spend}{\vn{sn}, \vn{rt}}
+    \State \Assert $\vn{sn} \notin \sigma.\vn{sns}$
+    \State \Assert $\vn{rt} \in \sigma.\vec{R}$
+    \State \Let $\sigma.\vn{sns} \gets \sigma.\vn{sns} \cup \set{\vn{sn}}$
+  \end{receivequery}
+
+  \begin{receivequery}{public}{msg}{M}
+    \State \Let $\sigma.\vec{M} \gets \sigma.\vec{M} \concat M$
+  \end{receivequery}
+  
+  \begin{receivequery}{public}{mint}{\cm}
+    \State \Let $\sigma.\vn{cms} \gets \sigma.\vn{cms} \cup \set{\cm}$
+    \State \Let $\sigma.\vec{R} \gets \sigma.\vec{R} \concat \vn{merkleroot}(\sigma.\vn{cms})$
+  \end{receivequery}
+
+  \mknorm
+  \begin{helpers}
+    \Function{$\vn{update}$}{$\rho, \sigma$}
+      \State \Let $\vec{N} \gets \sigma.\vec{M}[\rho.i{:}]; \rho.i \gets
+        \vn{max}(\rho.i, |\sigma.\vec{M}|)$
+      \For{$M \in \vec{N}$}
+        \If{$\exists r, p : (r, p) = \vn{dec}(M, \rho.K_e)$}
+          \If{$\vn{comm}_r((\prf_{\rho.K_z}^{\pk}(1), p) \notin \sigma.\vn{cms}$}
+            \Continue
+          \EndIf
+          \If{$\vn{prf}_{\rho.K_z}^{\sn}(p) \in \sigma.\vn{sns}$}
+            \Continue
+          \EndIf
+          \State \Let $\rho.\vec{C} \gets \rho.\vec{C} \concat (r, p)$
+        \EndIf
+      \EndFor
+      \State \Return $\rho$
+    \EndFunction
+  \end{helpers}
+\end{transitionfn}
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../../main"
+%%% End:

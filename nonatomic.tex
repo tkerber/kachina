@@ -1,0 +1,51 @@
+\section{Non-Atomic Executions}
+\label{sec:nonatomic}
+
+Smart contracts are typically closely linked with transactions made on the
+underlying ledger, and indeed we explicitly make the same link in this paper.
+That being said, there are numerous applications which do not rely on a single
+transaction per interaction with a contract, from Hawk~\cite{SP:KMSWP16}, which
+requires at least two transactions per round of interaction, to state
+channels~\cite{CCS:DziFauHos18}, which have many of the same properties of smart
+contracts, but may (under optimal conditions) not require transactions at all.
+
+While the model of smart contracts presented in \autoref{sec:def}
+technically excludes both of these, and a full treatment of both would require
+further work, it is nonetheless worth considering how they can be -- albeit
+imperfectly -- embedded in this model. First, let us consider contract queries
+which require multiple on-chain interactions to ``complete''. As an example from
+Hawk, consider Alice posts a query to a Hawk-style contract. Naturally, this
+will not immediately return -- even if Alice's transaction has made it on-chain.
+Instead, the transaction could return a ``future object'' -- a concept often
+used in concurrent programming design, essentially just being a reference ID,
+and a promise to associate some data with it later. Both Alice and the manager
+party would have to regularly poll the contract -- e.g. send a contract query
+$\msg{poll}{}$ every 10 minutes. On the manager's next $\msg{poll}{}$ query, he
+would update the Hawk private state, and encrypt and post the result for Alice.
+Finally, when Alice next polls, she would retrieve the result, and associate it
+with the previous ``future object'' as an output. This sketches a protocol
+running \emph{on top of \kachina}, which achieves this style of interaction.
+It is worth noting that this requirement for end-users to interact is also a
+limitation of the underlying model of universal composability: The environment
+must manually instruct parties to resume, or messages to be forwarded by the
+adversary.
+
+In a similar vein, we can observe that some transactions need not be placed on a
+ledger. In particular, if the shared, public state is not used, the transaction
+is essentially ``off\-chain'', and there is no need to publicly post it. Further,
+if the public state is used for message passing (such as in the construction of
+a Zerocash contract above), this part of the transaction need not be on-chain --
+sending an out of band message is cheaper. Using the same UC-based approach
+described above, it would therefore be possible, for example, to first define an
+ideal payment-channel contract, and prove that this is UC-emulated by a contract
+implementing, for instance, Perun~\cite{SP:DEFM19}. Finally, we can argue that most
+transactions in this contract can be omitted from the ledger, as they are just
+two-party channel interactions. This is a rather roundabout means of
+constructing off-chain communication, however it brings a crucial guarantee with
+it, namely that it behaves the same under ledger reorderings as a purely
+on-chain contract.
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "main"
+%%% End:

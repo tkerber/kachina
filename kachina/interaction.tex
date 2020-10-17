@@ -1,0 +1,31 @@
+\subsection{Interaction Between Smart Contracts}
+
+The example in \autoref{sec:oracles}, makes the natural assumption (in the
+setting of smart contracts), of being able to interact with other components
+-- in this case with an asset system. Most interesting applications of smart
+contracts seem premised on such interactions. We consider how multiple
+contracts may interact in
+\iffull\autoref{sec:loopmux}\else\cite[Appendix~J.3]{fullversion}\fi, however
+we stress that a full treatment is left as future work.
+
+In particular, how various contracts can be independently proven secure and
+composed in a general system alongside other, potentially malicious contracts,
+is not handled in this paper. Instead, where we assume interaction, we limit
+ourselves to a closed smart contract system with a small set of non-malicious
+contracts, such as the auction contract and the asset system in
+\autoref{sec:oracles}.
+
+While it is tempting to delegate such interactions to the native
+compositionality and interactiveness of UC, this does not reflect the reality of
+smart contract interactions, where the executions of multiple contracts are
+atomically intertwined. While related issues of interaction with the
+environment have been considered in the literature, for instance in~\cite{AC:CEKKR16,muc},
+they do not fully address our scenario, in which multiple branches can be
+executed in projection. We therefore believe that studying the interaction and
+composition of smart contract transition and leakage functions requires further
+work, with this work providing a foundation.
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:

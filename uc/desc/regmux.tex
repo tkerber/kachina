@@ -1,0 +1,17 @@
+\begin{algorithmic}
+  \Function{$\vn{desc}_{\vn{regmux}}$}{$t, X, \transcript_\sigma,
+    \transcript_\rho, (A = (\cdot, \cdot, \vn{desc}, \cdot), w), z$}
+    \State \Let $(\cdot, \transcript_\sigma') \gets
+      \vn{unmuxPubOracle}(\transcript_\sigma)$
+    \State \Let $(\cdot, \transcript_\rho') \gets
+      \vn{unmuxPrivOracle}(\transcript_\rho)$
+    \State \Let $X' \gets \vn{unmuxX}_{\vn{regmux}}(X, A); z' \gets
+      \vn{unmuxZ}_{\vn{regmux}}(z, A)$
+    \State \Return ``Calling sub-contract $A$: ''$+ \vn{desc}(t, X',
+      \transcript_\sigma', \transcript_\rho', w, z')$
+  \EndFunction
+\end{algorithmic}
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../../main"
+%%% End:

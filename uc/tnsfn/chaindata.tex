@@ -1,0 +1,23 @@
+\begin{transitionfn}{$\tnsfnkachina_{\vn{chaindata}}$}
+  The chain data transition function $\tnsfnkachina_{\vn{chaindata}}$ allow
+  arbitrary setting and reading of state. An external assumption is that the
+  setting of state is both enforced and restricted by the underlying ledger
+  protocol, to give it meaning -- for instance each block may induce a phantom
+  ``chain-data'' transaction which appears on the ledger, and sets the most
+  recent block hash in the chain-data contracts state.
+
+  \vsep
+
+  \begin{receiveinput}{set}{\sigma'}
+    \State \Run $\oracle_\sigma(\lambda (\cdot, \cdot): (\sigma', \top))$
+  \end{receiveinput}
+
+  \begin{receiveinput}{get}{}
+    \State \Return $\oracle_\sigma(\lambda (\sigma, \cdot) : (\sigma, \sigma))$
+  \end{receiveinput}
+\end{transitionfn}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../../main"
+%%% End:

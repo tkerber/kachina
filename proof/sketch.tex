@@ -1,0 +1,35 @@
+\subimport*{./}{theorem}
+
+We prove \autoref{thm:kachina} through a detailed case-analysis of any action an
+environment, in conjunction with the dummy adversary, may take. The full case
+analysis may be found in \iffull\autoref{sec:fullproof}\else\cite[Appendix~D]{fullversion}\fi. We define an invariant $\boldsymbol I$ between the real and
+ideal executions in the UC security statement, roughly encoding that ``the real
+and ideal states are equivalent''. This ranges from simple equivalences, such as
+them having the same ledger states, or the same NIZK proofs considered valid, to
+complex invariants, such as all unconfirmed honest transactions satisfying the
+sub-invariant $J$ of \autoref{def:invdep}. This invariant is used to argue that the
+environment, in combination with a dummy adversary, cannot distinguishing
+between the real and ideal worlds. Specifically, for any action the environment
+takes, $\boldsymbol I$ is preserved, and from $\boldsymbol I$ holding, we can
+conclude that the information revealed to it, or the dummy adversary, is
+insufficient to distinguish the two worlds.
+
+The simulator for \kachina\ is quite straightforward; it simply creates
+simulated NIZK proofs for all honest transactions, and forces the adversary to
+reveal witnesses to the simulated NIZK functionality in time for these to be
+input to the ideal smart contract. Fundamentally, the security proof relies on
+state transcripts being interchangeable with full state oracles in the same
+setting, and this setting being enforced by both the protocol and functionality.
+
+While a lot of factors must be formally considered, this is derived from
+receiving NIZK proofs as part of valid transactions, which prove precisely that
+if the preconditions for the transaction are met, then the update performed on
+the public state is the same. The private state is a little more tricky, but is
+guaranteed by the dependency invariant $J$ holding for honest parties. This lets
+us similarly argue that the private state transcript will have the same effect
+as the ideal-world execution.
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:

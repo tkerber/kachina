@@ -1,0 +1,117 @@
+\section{Liveness of Smart Contracts}
+\label{sec:liveness}
+
+We have presented \kachina\ in a model without liveness guarantees. In this
+section, we discuss how to model, and prove \kachina\ secure in the presence of
+such liveness guarantees. Similar principles can be used to argue for the
+security of \kachina\ for further modifications to the ledger protocol, such as
+adding consensus-level validation predicates.
+
+\subsection{The $\delay$-delay Ledger}
+
+While the simplified ledger $\gsimpleledger$ is nice for the analysis of
+protocols building on it as a global functionality, in practice users would like
+to take advantage of some liveness guarantees. We present a ledger
+$\gdelayledger$, which annotates transactions with a time at which they were
+received. This time is never returned to parties, however it asserts that every
+party can see a transaction, once it is $\delay$ time slots in the past. This
+ledger operates under the assumption of a global clock $\gclock$, which is also
+presented here. We posit without proof that $\gdelayledger$ UC-emulates
+$\gsimpleledger$, by virtue of the latter having far greater adversarial power.
+We claim that this ledger can also be constructed using existing UC-secure ledgers
+such as \cite{C:BMTZ17,CCS:BGKRZ18}, as these aim to provide the same
+guarantees.
+
+\subimport*{../uc/funct/}{delayledger}
+\subimport*{../uc/funct/}{clock}
+
+\subsection{Commutativity of Ledger Realizations}
+\label{sec:commuc}
+
+It is of note that since the ledger exists in both the ideal and real world, we
+would ideally wish to be able to utilize the stronger $\delay$-delay ledger (and
+others) in the ideal world as well. This is not trivial, however -- the UC proof
+presented in this paper holds for the simple ledger, and while the transitivity
+and composability of UC proofs implies that the simple ledger can be replaced by
+the stronger ledger in the real world, this is not the only goal.
+
+In order to enable ideal-world replacement, we consider when UC replacements are
+commutative. Specifically, consider we have four functionalities, $\mathcal{A}$,
+$\mathcal{B}$, $\mathcal{C}$, and $\mathcal{D}$, such that: a) $\mathcal{A}$ and
+$\mathcal{B}$ both have $\mathcal{C}$ as a global functionality, b)
+$\mathcal{A}$ is UC-emulated by $\mathcal{B}$ with the simulator
+$\simul_{\mathcal{B}}$, and c) $\mathcal{C}$ is UC-emulated by $\mathcal{D}$
+with the simulator $\simul_{\mathcal{D}}$. Observe that this is a generalization
+of our situation, where $\mathcal{A}$ is $\fsc$, $\mathcal{B}$ is $\kachina$,
+$\mathcal{C}$ is $\gsimpleledger$, and $\mathcal{D}$ is some other ledger $\gl$.
+
+When can we conclude that $\mathcal{A}$ is still UC-emulated by $\mathcal{B}$
+even if the global functionality is replaced by $\mathcal{D}$ in both worlds?
+I.e. when can we perform the inner UC-replacement \emph{first}, and still be
+able to perform the outer one?
+
+\begin{theorem}
+  Given $\mathcal{A}$, $\mathcal{B}$, $\mathcal{C}$, $\mathcal{D}$,
+  $\simul_{\mathcal{B}}$, $\simul_{\mathcal{C}}$ as defined in
+  \autoref{sec:commuc}, if $\simul_{\mathcal{B}}$ forwards all adversarial
+  queries to $\mathcal{C}$ unchanged, and makes no queries to
+  $\mathcal{C}$, then $\mathcal{A}$ is UC-emulated by $\mathcal{B}$ with the
+  global functionality $\mathcal{D}$ in place of $\mathcal{C}$.
+  \label{thm:commuc}
+\end{theorem}
+
+\begin{proof}
+  We will provide this proof largely visually. The environment has a number of
+  actions it can perform in any given world, in tandem with the dummy adversary.
+  We will represent these as unconnected wires in a circuit representation of
+  the different UC functionalities. Each wire is coloured in accordance with its
+  purpose; these colours serve only to differentiate the wires. We visualize the
+  preconditions of \autoref{thm:commuc} in \autoref{fig:commucbasicguc} and
+  \autoref{fig:commucbasicuc}. This crucially includes the precondition that
+  $\simul_{\mathcal{B}}$ forwards adversarial queries to $\mathcal{C}$, which is
+  represented equivalently by these queries being made directly instead.
+
+  \subimport*{../fig/}{commuctoplevel}
+  \subimport*{../fig/}{commucbotlevel}
+
+  By the UC emulation theorem, for all environments, executions with the
+  simulator and the ideal-world protocol are equivalent to executions with the
+  real-world protocol. Due to the all-quantification of the environment, we can
+  replace any part of a circuit diagram which matches exactly one of the two
+  sides of the equivalence with the other -- this is the foundation of the
+  compositionality in UC.
+
+  We first make use of this in the non-standard direction, of making our
+  ideal-world protocol \emph{more ideal}. Specifically, replace the right-hand
+  side of \autoref{fig:commucbasicuc} with the left. We start similarly to the
+  left-hand side of \autoref{fig:commucbasicguc}, however using $\mathcal{D}$
+  instead of $\mathcal{C}$. Visually, \autoref{fig:commucstep1} demonstrates the
+  result, which includes two independent simulators.
+
+  \subimport*{../fig/}{commucabstract}
+
+  From here, we can realize both the ideal-world functionalities, provided it is
+  in the correct order: We must first realize $\mathcal{A}$, as it relies on the
+  presence of $\mathcal{C}$. We can directly apply the equivalence of
+  \autoref{fig:commucbasicguc}, as can be seen in \autoref{fig:commucstep2}.
+
+  \subimport*{../fig/}{commuctoprealise}
+
+  Finally, nothing stands in the way of realizing $\mathcal{C}$ with
+  $\mathcal{D}$, using the equivalence of \autoref{fig:commucbasicuc} again,
+  this time in the more typical direction. As a result, we get in
+  \autoref{fig:commucstep3} the final step, leading us to the intended
+  equivalence, and proving the related UC-emulation statement.
+
+  \subimport*{../fig/}{commucbotrealise}
+  \qed
+\end{proof}
+
+As a final remark, we observe that $\kachina$ satisfies the preconditions for
+commutativity, as $\simul_{\kachina}$ does not make adversarial queries to
+$\gledger$.
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:
