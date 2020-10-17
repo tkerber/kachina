@@ -14,9 +14,9 @@
 \todosum
 
 \begingroup
-\renewcommand\thefootnote{}%
-\footnote{The \LaTeX\ sources of this paper are available online at \url{https://github.com/tkerber/kachina}.}%
-\addtocounter{footnote}{-1}%
+\renewcommand\thefootnote{\fnsymbol{footnote}}%
+\renewcommand\thempfootnote{\fnsymbol{mpfootnote}}%
+\footnotetext[0]{The \LaTeX\ sources of this paper are available online at \url{https://github.com/tkerber/kachina}.}%
 \endgroup
 \subimport*{./}{abstract}
 \subimport*{intro/}{main}
