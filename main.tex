@@ -2,6 +2,7 @@
 \usepackage{packages}
 \usepackage{contract}
 \usepackage{notation}
+\newnote{Thomas}{\tnote}{\tblock}{blue}
 \graphicspath{{fig/}}
 \makeatletter
 \newif\iffull\fulltrue
@@ -10,7 +11,11 @@
 \title{\kachina\ -- Foundations of Private Smart Contracts}
 
 \begin{document}
+\let\oldaddcontentsline\addcontentsline
+\def\addcontentsline#1#2#3{}
 \maketitle
+\def\addcontentsline#1#2#3{\oldaddcontentsline{#1}{#2}{#3}}
+\begin{center}\footnotesize Revision 3\end{center}
 \todosum
 
 \begingroup
@@ -19,6 +24,7 @@
 \footnotetext[0]{The \LaTeX\ sources of this paper are available online at \url{https://github.com/tkerber/kachina}.}%
 \endgroup
 \subimport*{./}{abstract}
+\starttoc
 \subimport*{intro/}{main}
 \subimport*{./}{overview}
 \subimport*{def/}{main}
@@ -27,6 +33,8 @@
 \subimport*{./}{remarks}
 \subimport*{./}{acknowledgements}
 
+\phantomsection
+\addcontentsline{toc}{section}{Bibliography}
 \bibliography{cryptobib/abbrev3,cryptobib/crypto,misc}{}
 \bibliographystyle{plain}
 

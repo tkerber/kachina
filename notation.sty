@@ -58,3 +58,9 @@
     \vbox{\copy2\box0}\box2}}
 \newcommand{\eoe}{{\color[RGB]{204,36,29}\vspace{.5em}\hrule\vspace{.2em}\hrule\hrule\vspace{.2em}\hrule\vspace{.5em}}}
 
+\newcommand{\starttoc}{
+  \section*{Table of Contents}
+  \def\authcount##1{\setcounter{auco}{##1}\setcounter{@auth}{1}}
+  \setcounter{tocdepth}{2}
+  \@starttoc{toc}
+}

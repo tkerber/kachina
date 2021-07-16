@@ -25,8 +25,8 @@
     \State \Let $\sigma^\pi \gets \sigma^o; \rho^\pi \gets \rho^o; X \gets \epsilon$
     \For{$u = (\transcript_\sigma, D, \cdot) \loopin U$}
       \State \Let $(\transcript_\rho, z) \gets T(u)$
-      \State \Let $\sigma^\pi \gets \transcript_\sigma(\sigma^\pi); \rho^\pi
-        \gets \transcript_\rho(\rho^\pi, z)$
+      \State \Let $\sigma^\pi \gets \vn{last}(\transcript_\sigma(\sigma^\pi)); \rho^\pi
+        \gets \vn{last}(\transcript_\rho(\rho^\pi, z))$
       \State \Let $X \gets X \concat (u, \vn{split}(\transcript_\rho,
         \msg{commit}{}), z, D)$
     \EndFor
@@ -108,23 +108,23 @@
         \EndIf
         \State \Let $C \gets C \cup \set{\tx}$
         \If{$T(\tx) \neq \bot$}
-          \SplitState{\Let $\vn{parts} \gets \vn{zip}(\vn{split}(\transcript_\sigma, \msg{commit}{}),\allowbreak
-              \vn{split}(T(\tx), \msg{commit}{}), Y(\tx))$}
-          \For{$(\transcript_\sigma', \transcript_\rho, y') \loopin \vn{parts}$}
-            \If{$\transcript_\sigma'(\sigma) = \bot$}
+          \SplitState{\Let $\vn{parts} \gets \vn{zip}(\transcript_\sigma(\sigma), \allowbreak
+            T(\tx)(\rho), [\bot] \concat Y(\tx))$}
+          \For{$(\sigma', \rho, y') \loopin \vn{parts}$}
+            \If{$\sigma' = \bot$}
               \State \Let $C \gets C \setminus \set{\tx}$
               \State \Break
             \EndIf
-            \State \Let $\sigma \gets \transcript_\sigma'(\sigma); \rho \gets
-              \transcript_\rho(\rho); y \gets y'$
+            \State \Let $\sigma \gets \sigma'; \rho \gets
+              \rho'(\rho); y \gets y'$
           \EndFor
         \Else
-          \For{$\transcript_\sigma' \loopin \vn{split}(\transcript_\sigma, \msg{commit}{})$}
-            \If{$\transcript_\sigma(\sigma) = \bot$}
+          \For{$\sigma' \loopin \transcript_\sigma(\sigma)$}
+            \If{$\sigma' = \bot$}
               \State \Let $C \gets C \setminus \set{\tx}$
               \State \Break
             \EndIf
-            \State \Let $\sigma \gets \transcript_\sigma'(\sigma)$
+            \State \Let $\sigma \gets \sigma'$
           \EndFor
         \EndIf
       \EndFor

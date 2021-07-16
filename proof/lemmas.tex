@@ -145,7 +145,7 @@ preserve the invariant, and return the same values in the real and ideal world.
   added. By \ref{inv:postunrecorded}, we know that $\tx$ belongs to an honest
   party $\party'$, and that $\tx \in \phi_{\party'}.U$. We will use \ref{inv:dep}
   to argue that, where $(\transcript_\rho, z) = \phi_{\party'}.T(\tx)$,
-  either $\transcript_\rho(\boldsymbol\rho^i[\party'], z) \neq \bot$, or the
+  either $\bot \notin \transcript_\rho(\boldsymbol\rho^i[\party'], z)$, or the
   transaction is skipped in both worlds.
 
   First, we consider the possibility that $\tx \notin \phi_{\party'}.U$. By
@@ -192,8 +192,8 @@ preserve the invariant, and return the same values in the real and ideal world.
   Now that $\tx$ is processed, we know by \ref{inv:dep} that its dependencies
   are either in confirmed, and in order, in $\ledgerstate^*$, or in
   $\phi_{\party'}.U$. In either case, $\tx$ is skipped in both worlds if it is a
-  replayed transaction, or if would set $\transcript_\sigma(\sigma) = \bot$. In
-  the ideal world, additionally it gets skipped if it would set the contract
+  replayed transaction, or parts of it are skipped if they would set $\transcript_\sigma(\sigma) = \ldots \concat \bot \concat \ldots$. In
+  the ideal world, additionally parts gets skipped if they would set the contract
   state -- either $\sigma^i$ or $\boldsymbol\rho^i$ -- to $\bot$.
 
   As $\tx \in \phi_{\party'}.U$, and is not a replay, $B = A \concat \tx$ is a
@@ -220,7 +220,7 @@ preserve the invariant, and return the same values in the real and ideal world.
   \phi_{\party'}.Y(\tx)[c]$, where $c$ is the
     confirmation depth.
 
-  As in the real world $\sigma^r \gets \transcript_\sigma(\sigma^r)$, their
+  As in the real world $\sigma^r$ is set to the last non-$\bot$ entry of $\transcript_\sigma(\sigma^r)$, their
   equality is preserved.\ If $\party = \party'$, by \ref{inv:honestrec},
   $\phi_\party.T$ is defined, and as a result, the same update is carried out to
   $\rho$ in the real world, as to $\boldsymbol\rho^i[\party]$ in the ideal

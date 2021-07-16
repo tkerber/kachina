@@ -13,3 +13,13 @@
 \usepackage{amsmath}
 % Symbols
 \usepackage{pifont}
+% Hyperref colors
+\hypersetup{
+    linkbordercolor={red!70!black},
+    citebordercolor={green!60!black},
+    urlbordercolor={blue!80!black},
+    pdfborderstyle={/S/U/W 1}
+}
+\AtBeginDocument{
+  \apptocmd\Hy@colorlink{\strut}{}{\fail}
+}

@@ -10,19 +10,16 @@
   
   \begin{receiveinput*}{$((\sigma, \boldsymbol\rho), \party, w,
       (\transcript_\sigma, z), \cdot)$}
-    \If{$\transcript_\sigma(\sigma) = \bot$}
-      \Return $(\bot, \bot, \bot)$
-    \EndIf
     \State \Let $(\partstate{\sigma}, \transcript_\sigma', \partstate{\rho}, \cdot, \partresults) \gets
       \runtnsfn(\sigma, \boldsymbol\rho[\party], w, z, \party \in \honest)$
-    \State \Let $\sigma' \gets \sigma; y \gets \bot; C \gets \top$
+    \State \Let $y \gets \bot; C \gets \top$
     \State \Let $\splittranscript \gets
       \vn{split}(\transcript_\sigma, \msg{commit}{}); \splittranscript' \gets
-      \vn{split}(\transcript_\sigma, \msg{commit}{})$
+      \vn{split}(\transcript_\sigma', \msg{commit}{})$
     \For{$(\transcript_i, \transcript_c, \sigma', \rho', y') \loopin \vn{zip}(\splittranscript,
       \splittranscript', \partstate{\sigma},
         \partstate{\rho}, \partresults)$}
-      \If{$\sigma' = \bot \lor \rho' = \bot \lor \transcript_r \neq \transcript_c$}
+      \If{$\sigma' = \bot \lor \rho' = \bot \lor \transcript_i \neq \transcript_c$}
         \State \Let $C \gets \bot$
         \State \Break
       \EndIf

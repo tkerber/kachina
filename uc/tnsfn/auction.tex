@@ -1,11 +1,13 @@
-\begin{transitionfn}{$\tnsfnkachina_{\vn{auction}}$}
-  A simple private auction contract.
+\begin{transitionfn}{$\tnsfnkachina_{\vn{auction}}(A, B)$}
+  A simple private auction contract, parameterised by assets $A$ and $B$, which
+  correspond to contracts with transition functions $\tnsfnkachina_A$ and
+  $\tnsfnkachina_B$.
 
   \vsep
 
   \begin{receiveinput}{bid}{v}
     \SplitState{\SendAndReceive{bind}{v,
-      \tnsfnkachina_\vn{auction}}{\tnsfnkachina_B}{(\openbid, \bidcomm, v)}}
+      \tnsfnkachina_\vn{auction}(A, B)}{\tnsfnkachina_B}{(\openbid, \bidcomm, v)}}
     \State \SendAndReceive*{$\vn{makeBid}_\bidcomm$}{$\oracle_\sigma$}{$\top$}
     \SplitState{\SendAndReceive*{$\vn{recordBid}_{\openbid, \bidcomm, v}$}{$\oracle_\rho$}{$\top$}}
   \end{receiveinput}
@@ -17,7 +19,7 @@
     \State \SendAndReceive*{$\vn{projMax}$}{$\oracle_\rho$}{$v'$}
     \If{$v' < v$}
       \SplitState{\Send{assertValidFor}{\openbid, \bidcomm, v, \pk,\allowbreak
-          \tnsfnkachina_\vn{auction}}{\tnsfnkachina_B}}
+        \tnsfnkachina_\vn{auction}(A, B)}{\tnsfnkachina_B}}
       \SplitState{\SendAndReceive*{$\vn{claimMax}_{\openbid, \bidcomm, v, \pk}$}{$\oracle_\sigma$}{$\top$}}
     \Else
       \State \Send{unbind}{\openbid, \pk}{\tnsfnkachina_B}

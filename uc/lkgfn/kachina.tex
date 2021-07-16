@@ -9,12 +9,9 @@
   \vsep
 
   \begin{receiveinput*}{$(\partyview = (\ell, U, T, \jointstate = (\sigma^o, \boldsymbol\rho^o)), \party, w)$}
-    \State \Let $(\sigma^\pi, \rho^\pi) \gets (\sigma^o, \boldsymbol\rho^o[\party])$
+    \State \Let $(\sigma^\pi, \rho^\pi) \gets (\sigma^o, \boldsymbol\rho^o[\party]); X \gets \epsilon$
     \For{$u \loopin U$}
       \State \Let $(\party', w', (\transcript_\sigma, z), \cdot, \cdot, D) \gets T(u)$
-      \If{$\transcript_\sigma(\sigma^\pi) = \bot$}
-        \State \Return $(\bot, \bot, \bot, \bot, \bot)$
-      \EndIf
       \State \Let $(\partstate{\sigma}, \cdot, \partstate{\rho}, \transcript, \cdot) \gets
         \runtnsfn(\sigma^\pi, \rho^\pi, w', z, \party' \in \honest)$
       \State \Let $\sigma^\pi \gets \vn{last}(\partstate{\sigma}); \rho^\pi

@@ -299,7 +299,8 @@ transcripts may be used.
       \For{$(q_i, r_i) \loopin \transcript$}
         \State \SendAndReceive*{$q_i$}{$\oracle$}{$r$}
         \If{$r \neq r_i$}
-          \Return $\bot$
+          \State \Let $(\partstate{\arbstate} \concat \cdot, \cdot) \gets \vn{state}(\oracle)$
+          \State \Return $\partstate{\arbstate} \concat \bot$
         \EndIf
       \EndFor
       \State \Let $(\partstate{\arbstate}, \cdot) \gets \vn{state}(\oracle)$
@@ -323,10 +324,14 @@ these queries were made.
   $\transcript^*_X(\arbstate)$, which has the recursive definition:
   \begin{itemize}
     \item $\transcript^*_\epsilon(\arbstate) \eqdef \arbstate$
-    \item $\transcript^*_{X \concat [(\transcript, z)]}(\arbstate) \eqdef
-      \vn{last}(\transcript(\transcript^*_X(\arbstate), z))$
+    \item $\transcript^*_{[(\transcript, z)] \concat X}(\arbstate) \eqdef
+      \vn{last}(\transcript^*_X(\transcript(\arbstate, z)))$
   \end{itemize}
 \end{definition}
+
+We will need to use a transcript in place of a state oracle, replicating the
+oracle behaviour without access to the state, provided it receives the same
+sequence of request. We refer to this as a \emph{transcript oracle}:
 
 \begin{definition}
   A transcript $\transcript = ((q_1, r_1), \ldots, (q_n, r_n))$
@@ -334,10 +339,11 @@ these queries were made.
   transcript oracle $\oracle(\transcript)$, which behaves as follows:
   \begin{itemize}
     \item Recorded $\msg{commit}{}$ messages are ignored.
-    \item For the $i$th query $q_i'$, return $r_i$ if $q_i' = q_i$, otherwise
-      abort by returning $\bot$ for this, and all subsequent queries.
-    \item When $\vn{consumed}(\oracle)$ is queried, return $\top$ if exactly $n$
-      queries were made, otherwise return $\bot$.
+    \item When a query $q_i'$ is made as the $i$th query to the transcript
+      oracle, return $r_i$ if $q_i' = q_i$, otherwise abort by returning $\bot$
+      for this, and all subsequent queries.
+    \item We define the predicate $\vn{consumed}(\oracle)$ as $\top$ if exactly $n$
+      queries were made, and $\bot$ otherwise.
   \end{itemize}
   If in an interaction with the oracle, $\vn{consumed}$ holds, the transcript
   was \emph{minimal} for this interaction.
