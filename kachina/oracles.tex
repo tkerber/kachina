@@ -307,16 +307,28 @@ transcripts may be used.
       \State \Return $\partstate{\arbstate}$
     \EndFunction
   \end{algorithmic}
-  If a transcript is malformed, applying it will result in $[\arbstate,
-    \bot]$.
+  If a transcript is malformed (that is, cannot be parsed into a sequence of
+  query and response pairs), applying it will result in $[\arbstate, \bot]$.
 \end{definition}
 
-If $\arbstate' = \transcript(\arbstate, z) \neq \bot$, then 
-The returned $\partstate{\arbstate}'$ is indistinguishable from the internal state
-$\partstate{\arbstate} \concat [\arbstate]$ of the state oracle $\utm(\arbstate_0,
-z)$, given the same sequence of queries. This allows users to replicate the
-effect other users' queries have on the public state, without knowing \emph{why}
-these queries were made.
+Observe that the application of a transcript mimics the execution of the
+original oracle, diverging only if it returns $\bot$ at some point.
+This allows users to replicate the effect other users' queries
+have on the public state, without knowing \emph{why} these queries were made.
+
+\begin{lemma}
+  For all $\arbstate$, $z$, $\transcript$, where:
+  \begin{algorithmic}
+    \State \Let $\oracle \gets \utm(\arbstate, z)$
+    \For{$(q, \cdot) \loopin \transcript$}
+      \State \Send*{$q$}{$\oracle$}
+    \EndFor
+    \State \Let $(\partstate{\arbstate}, \cdot) \gets \vn{state}(\oracle)$
+    \State \Let $\partstate{\arbstate}' \gets \transcript(\arbstate, z)$
+  \end{algorithmic}
+  Any prefix of $\partstate{\arbstate}'$ not containing a $\bot$ will match the
+  same length prefix of $\partstate{\arbstate}$.
+\end{lemma}
 
 \begin{definition}
   A sequence of transcripts and contexts $X = ((\transcript_1, z_1), \ldots,
@@ -325,7 +337,7 @@ these queries were made.
   \begin{itemize}
     \item $\transcript^*_\epsilon(\arbstate) \eqdef \arbstate$
     \item $\transcript^*_{[(\transcript, z)] \concat X}(\arbstate) \eqdef
-      \vn{last}(\transcript^*_X(\transcript(\arbstate, z)))$
+      \transcript^*_X(\vn{last}(\transcript(\arbstate, z)))$
   \end{itemize}
 \end{definition}
 

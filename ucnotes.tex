@@ -115,8 +115,9 @@ as a singleton list.
 
 We will use the following functions throughout the paper. $\vn{prefix}(L, x)$
 returns the shortest prefix of $L$ containing $x$, or $L$ itself, if not such
-prefix exists. $\vn{idx}(L, x)$ returns the index of the first occurrence of $x$
-in $L$, or $\bot$ if $x \notin L$.
+prefix exists. $\vn{idx}(L, x)$ returns the index of the first occurrence of
+$x$ in $L$, or $\bot$ if $x \notin L$. Finally, $\vn{dedup}(L)$ returns $L$
+with any duplicate elements removed.
 
 \begin{algorithmic}
   \Function{$\vn{prefix}$}{$L, x$}
@@ -138,6 +139,15 @@ in $L$, or $\bot$ if $x \notin L$.
       \State \Let $i \gets i + 1$
     \EndFor
     \State \Return $\bot$
+  \EndFunction
+  \Function{$\vn{dedup}$}{$L$}
+    \State \Let $L' \gets \epsilon$
+    \For{$y \loopin L$}
+      \If{$y \notin L'$}
+        \Let $L' \gets L' \concat [y]$
+      \EndIf
+    \EndFor
+    \State \Return $L'$
   \EndFunction
 \end{algorithmic}
 

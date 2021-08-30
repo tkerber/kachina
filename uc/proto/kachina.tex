@@ -94,7 +94,7 @@
     \Procedure{$\vn{exec}$}{$\ledgerstate$}
       \State \Let $\sigma \gets \varnothing; \rho \gets \varnothing; y \gets
         \bot; C \gets \varnothing$
-      \For{$\tx = (\transcript_\sigma, D, \nizkproof) \loopin \ledgerstate$}
+        \For{$\tx = (\transcript_\sigma, D, \nizkproof) \loopin \vn{dedup}(\ledgerstate)$}
         \If{$\tx \in C$}
           \Continue
         \EndIf

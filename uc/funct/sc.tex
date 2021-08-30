@@ -78,10 +78,7 @@
     \EndProcedure
     \Procedure{$\vn{exec}$}{$\ledgerstate$}
       \State \Let $\jointstate \gets \varnothing; y \gets \bot; C \gets \varnothing$
-      \For{$\tx \loopin \ledgerstate$}
-        \If{$\tx \in C$}
-          \Continue
-        \EndIf
+      \For{$\tx \loopin \vn{dedup}(\ledgerstate)$}
         \If{$T(\tx) = \bot$}
           \SplitState{\QueryAdv[x = (\party, w, z, a, D)]
             [\party \notin \honest]
